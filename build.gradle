@@ -20,6 +20,9 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        maven {
+            url  "https://dl.bintray.com/nilzor/maven"
+        }
     }
 
     apply plugin: 'com.github.ben-manes.versions'

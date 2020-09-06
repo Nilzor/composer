@@ -3,7 +3,7 @@ ext.versions = [
 
         rxJava           : '1.3.0',
         jCommander       : '1.71',
-        commander        : '0.1.4',
+        commander        : '0.2.1',
         apacheCommonsIo  : '2.5',
         apacheCommonsLang: '3.5',
         gson             : '2.8.0',
@@ -21,8 +21,8 @@ ext.libraries = [
 
         rxJava                 : "io.reactivex:rxjava:$versions.rxJava",
         jCommander             : "com.beust:jcommander:$versions.jCommander",
-        commanderOs            : "com.gojuno.commander:os:$versions.commander",
-        commanderAndroid       : "com.gojuno.commander:android:$versions.commander",
+        commanderOs            : "com.nilzor.commander:os:$versions.commander",
+        commanderAndroid       : "com.nilzor.commander:android:$versions.commander",
         apacheCommonsIo        : "commons-io:commons-io:$versions.apacheCommonsIo",
         apacheCommonsLang      : "org.apache.commons:commons-lang3:$versions.apacheCommonsLang",
         gson                   : "com.google.code.gson:gson:$versions.gson",
