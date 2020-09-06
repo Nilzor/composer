@@ -10,9 +10,7 @@ class ArgsSpec : Spek({
 
     val rawArgsWithOnlyRequiredFields = arrayOf(
             "--apk", "apk_path",
-            "--test-apk", "test_apk_path",
-            "--test-package", "test_package",
-            "--test-runner", "test_runner"
+            "--test-apk", "test_apk_path"
     )
 
     context("parse args with only required params") {
@@ -23,8 +21,7 @@ class ArgsSpec : Spek({
             assertThat(args).isEqualTo(Args(
                     appApkPath = "apk_path",
                     testApkPath = "test_apk_path",
-                    testPackage = "test_package",
-                    testRunner = "test_runner",
+                    testRunner = "",
                     shard = true,
                     outputDirectory = "composer-output",
                     instrumentationArguments = emptyList(),
@@ -32,8 +29,22 @@ class ArgsSpec : Spek({
                     keepOutputOnExit = false,
                     devices = emptyList(),
                     devicePattern = "",
-                    installTimeoutSeconds = 120
+                    installTimeoutSeconds = 120,
+                    failIfNoTests = true,
+                    runWithOrchestrator = false,
+                    extraApks = emptyList()
             ))
+        }
+    }
+
+    context("parse args with test runner specified") {
+
+        val args by memoized {
+            parseArgs(rawArgsWithOnlyRequiredFields + arrayOf("--test-runner", "test_runner"))
+        }
+
+        it("converts instrumentation arguments to list of key-value pairs") {
+            assertThat(args.testRunner).isEqualTo("test_runner")
         }
     }
 
@@ -156,4 +167,55 @@ class ArgsSpec : Spek({
             assertThat(args.installTimeoutSeconds).isEqualTo(600)
         }
     }
+
+    context("parse args with passed --fail-if-no-tests") {
+
+        val args by memoized {
+            parseArgs(rawArgsWithOnlyRequiredFields + arrayOf("--fail-if-no-tests", "false"))
+        }
+
+        it("parses --fail-if-no-tests correctly") {
+            assertThat(args.failIfNoTests).isEqualTo(false)
+        }
+    }
+
+    context("parse args with explicitly passed --fail-if-no-tests") {
+
+        listOf(true, false).forEach { failIfNoTests ->
+
+            context("--fail-if-no-tests $failIfNoTests") {
+
+                val args by memoized {
+                    parseArgs(rawArgsWithOnlyRequiredFields + arrayOf("--fail-if-no-tests", "$failIfNoTests"))
+                }
+
+                it("parses --fail-if-no-tests correctly") {
+                    assertThat(args.failIfNoTests).isEqualTo(failIfNoTests)
+                }
+            }
+        }
+    }
+
+    context("parse args with --with-orchestrator") {
+
+        val args by memoized {
+            parseArgs(rawArgsWithOnlyRequiredFields + arrayOf("--with-orchestrator", "true"))
+        }
+
+        it("parses --with-orchestrator correctly") {
+            assertThat(args.runWithOrchestrator).isEqualTo(true)
+        }
+    }
+
+  context("parse args with passed --extra-apks") {
+
+    val args by memoized {
+      parseArgs(rawArgsWithOnlyRequiredFields + arrayOf("--extra-apks", "apk1.apk", "apk2.apk"))
+    }
+
+    it("parses correctly two extra apks") {
+      assertThat(args.extraApks).isEqualTo(listOf("apk1.apk", "apk2.apk"))
+    }
+  }
+
 })

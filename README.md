@@ -70,48 +70,94 @@ Composer shipped as jar, to run it you need JVM 1.8+: `java -jar composer-latest
 ##### Required
 
 * `--apk`
-  * Path to application apk that needs to be tested.
+  * Either relative or absolute path to application apk that needs to be tested.
+  * Example: `--apk myapp.apk`
 * `--test-apk`
-  * Path to apk with tests.
-* `--test-package`
-  * Android package name of the test apk (Could be parsed from `--test-apk`, PR welcome).
-* `--test-runner`
-  * Full qualified name of test runner class you're using (Could be parsed from `--test-apk`, PR welcome).
+  * Either relative or absolute path to apk with tests.
+  * Example: `--test-apk myapp-androidTest.apk`
 
 ##### Optional
 
 * `--help, -help, help, -h`
   * Print help and exit.
+* `--test-runner`
+  * Fully qualified name of test runner class you're using. 
+  * Default: automatically parsed from `--test-apk`'s `AndroidManifest`. 
+  * Example: `--test-runner com.example.TestRunner`
 * `--shard`
-  * Either `true` or `false` to enable/disable [test sharding][test sharding] which runs shards tests to available devices/emulators. True by default.
+  * Either `true` or `false` to enable/disable [test sharding][test sharding] which statically shards tests between available devices/emulators. 
+  * Default: `true`.
+  * Example: `--shard false`
 * `--output-directory`
-  * Either relative or absolute path to directory for output: reports, files from devices and so on. `composer-output` by default.
+  * Either relative or absolute path to directory for output: reports, files from devices and so on. 
+  * Default: `composer-output` in current working directory.
+  * Example: `--output-directory artifacts/composer-output`
 * `--instrumentation-arguments`
-  * Key-value pairs to pass to Instrumentation Runner. Usage example: `--instrumentation-arguments myKey1 myValue1 myKey2 myValue2`.
+  * Key-value pairs to pass to Instrumentation Runner.
+  * Default: empty.
+  * Example: `--instrumentation-arguments myKey1 myValue1 myKey2 myValue2`.
 * `--verbose-output`
-  * Either `true` or `false` to enable/disable verbose output for Composer. `false` by default.
+  * Either `true` or `false` to enable/disable verbose output for Composer. 
+  * Default: `false`.
+  * Example: `--verbose-output true`
 * `--keep-output-on-exit`
-  * Keep output on exit. False by default.
+  * Either `true` or `false` to keep/clean temporary output files used by Composer on exit. 
+  * Default: `false`.
+  * Composer uses files to pipe output of external commands like `adb`, keeping them might be useful for debugging issues. 
+  * Example: `--keep-output-on-exit true`
 * `--devices`
-  * Connected devices/emulators that will be used to run tests against. If not passed — tests will run on all connected devices/emulators. Specifying both `--devices` and `--device-pattern` will result in an error. Usage example: `--devices emulator-5554 emulator-5556`.
+  * Connected devices/emulators that will be used to run tests against.
+  * Default: empty, tests will run on all connected devices/emulators.
+  * Specifying both `--devices` and `--device-pattern` will result in an error.
+  * Example: `--devices emulator-5554 emulator-5556`
 * `--device-pattern`
-  * Connected devices/emulators that will be used to run tests against. If not passed — tests will run on all connected devices/emulators. Specifying both `--device-pattern` and `--devices` will result in an error. Usage example: `--device-pattern "emulator.+"`.
+  * Connected devices/emulators that will be used to run tests against.
+  * Default: empty, tests will run on all connected devices/emulators.
+  * Specifying both `--device-pattern` and `--devices` will result in an error.
+  * Example: `--device-pattern "emulator.+"`
 * `--install-timeout`
-  * APK installation timeout in seconds. If not passed defaults to 120 seconds (2 minutes). Applicable to both test APK and APK under test. Usage
-  example (for 10 minutes timeout): `--install-timeout 600`.
-
+  * APK installation timeout in seconds. 
+  * Default: `120` seconds (2 minutes). 
+  * Applicable to both test APK and APK under test. 
+  * Example: `--install-timeout 20`
+* `--fail-if-no-tests`
+  * Either `true` or `false` to enable/disable error on empty test suite.
+  * Default: `true`.
+  * `False` may be applicable when you run tests conditionally(via annotation/package filters) and empty suite is a valid outcome.
+  * Example: `--fail-if-no-tests false`
+* `--with-orchestrator`
+  * Either `true` or `false` to enable/disable running tests via AndroidX Test Orchestrator.
+  * Default: `false`.
+  * When enabled - minimizes shared state and isolates test crashes.
+  * Requires test orchestrator & test services APKs to be installed on device before executing.
+  * More info: https://developer.android.com/training/testing/junit-runner#using-android-test-orchestrator
+  * Example: `--with-orchestrator true`
+* `--extra-apks`
+  * Apks to be installed for utilities. What you would typically declare in gradle as `androidTestUtil` 
+  * Default: empty, only apk and test apk would be installed.
+  * Works great with Orchestrator to install orchestrator & test services APKs.
+  * Example: `--extra-apks path/to/apk/first.apk path/to/apk/second.apk`
+  
 ##### Example
 
+Simplest :
+```console
+java -jar composer-latest-version.jar \
+--apk app/build/outputs/apk/example-debug.apk \
+--test-apk app/build/outputs/apk/example-debug-androidTest.apk
+```
+
+With arguments :
 ```console
 java -jar composer-latest-version.jar \
 --apk app/build/outputs/apk/example-debug.apk \
 --test-apk app/build/outputs/apk/example-debug-androidTest.apk \
---test-package com.example.test \
 --test-runner com.example.test.ExampleTestRunner \
 --output-directory artifacts/composer-output \
 --instrumentation-arguments key1 value1 key2 value2 \
 --verbose-output false \
---keep-output-on-exit false
+--keep-output-on-exit false \
+--with-orchestrator false
 ```
 
 ### Download
@@ -130,10 +176,30 @@ Composer works great in combination with [Swarmer][swarmer] — another tool we'
 
 ### How to build
 
-Dependencies: you only need `docker` and `bash` installed on your machine.
+#### All-in-one script (used in Travis build)
+
+Dependencies: `docker` and `bash`.
 
 ```console
-bash ci/build.sh
+ci/build.sh
+```
+
+#### Build Composer
+
+Environment variable `ANDROID_HOME` must be set.
+
+```console
+./gradlew build
+```
+
+#### Build HTML report module
+
+Dependencies: `npm` and `nodejs`.
+
+```console
+cd html-report
+npm install
+npm build
 ```
 
 ## License

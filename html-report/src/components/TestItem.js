@@ -20,7 +20,7 @@ export default class TestItem extends Component {
         <div className="title-common vertical-aligned-content">
           <a href={ paths.fromTestToIndex }>Suites list</a> /
           <a href={ paths.fromTestToSuite(data.suite_id) }>Suite { data.suite_id }</a> /
-          { data.deviceId }
+          { data.deviceModel } ({ data.deviceId })
         </div>
         <div className='margin-top-20'>
           <div className={ `card row full justify-between test-page ${data.status}` }>
@@ -64,6 +64,11 @@ export default class TestItem extends Component {
                 </li> )
               }) }
             </ul>
+          </div>}
+
+          { !!data.stacktrace.length && <div className="card">
+            <div className="title-common">Stacktrace</div>
+            <pre className="row" style={ { overflow: 'auto' } }>{ data.stacktrace }</pre>
           </div>}
         </div>
       </div>
