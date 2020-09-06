@@ -9,6 +9,12 @@ Composer is a modern reactive replacement for [square/spoon][spoon] with followi
 
 ![Demo](demo/composer.gif)
 
+### Fork additions
+
+This repo is a fork of [gojuno/commander](https://github.com/gojuno/commander). Additions I've made:
+
+- Added Windows support
+
 ### Table of Contents
 
 - [Why we've decided to replace square/spoon](#why-weve-decided-to-replace-squarespoon)
@@ -110,17 +116,8 @@ java -jar composer-latest-version.jar \
 
 ### Download
 
-Composer is [available on jcenter](https://jcenter.bintray.com/com/gojuno/composer).
-
->You can download it in your CI scripts or store it in your version control system (not recommended).
-
-```console
-COMPOSER_VERSION=some-version
-curl --fail --location https://jcenter.bintray.com/com/gojuno/composer/composer/${COMPOSER_VERSION}/composer-${COMPOSER_VERSION}.jar --output /tmp/composer.jar
-```
-
-All the releases and changelogs can be found on [Releases Page](https://github.com/gojuno/composer/releases).
-
+No binary download of this build is currently available. Please clone and build the project.
+ 
 ### 3rd-party Composer Gradle Plugin
 
 [@trevjonez](https://github.com/trevjonez) [built](https://github.com/gojuno/composer/issues/77) 🎉 [Gradle Plugin for Composer](https://github.com/trevjonez/composer-gradle-plugin) which allows you to configure and run Composer with Gradle.
