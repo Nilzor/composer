@@ -18,7 +18,7 @@ class HtmlShortTestSpec : Spek({
                     deviceModel = "test-device-model",
                     status = HtmlFullTest.Status.Passed,
                     durationMillis = 1234,
-                    stacktrace = null,
+                    stacktrace = "",
                     logcatPath = "testLogcatPath",
                     filePaths = listOf("testFilePath1", "testFilePath2"),
                     screenshots = listOf(HtmlFullTest.Screenshot(path = "testScreenshotPath1", title = "testScreenshot1"), HtmlFullTest.Screenshot(path = "testScreenshotPath2", title = "testScreenshot2")),

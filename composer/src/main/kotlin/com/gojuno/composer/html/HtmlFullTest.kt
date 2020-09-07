@@ -29,7 +29,7 @@ data class HtmlFullTest(
         val status: Status,
 
         @SerializedName("stacktrace")
-        val stacktrace: String?,
+        val stacktrace: String = "",
 
         @SerializedName("logcat_path")
         val logcatPath: String,
@@ -85,7 +85,7 @@ fun AdbDeviceTest.toHtmlFullTest(suiteId: String, htmlReportDir: File) = HtmlFul
         stacktrace = when (status) {
             is AdbDeviceTest.Status.Ignored -> status.stacktrace
             is AdbDeviceTest.Status.Failed  -> status.stacktrace
-            else -> null
+            else -> ""
         },
         logcatPath = logcat.relativePathTo(htmlReportDir),
         deviceId = adbDevice.id,

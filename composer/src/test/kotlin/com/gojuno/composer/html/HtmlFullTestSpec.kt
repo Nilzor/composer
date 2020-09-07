@@ -35,7 +35,7 @@ class HtmlFullTestSpec : Spek({
                     deviceModel = "testModel",
                     status = HtmlFullTest.Status.Passed,
                     durationMillis = NANOSECONDS.toMillis(adbDeviceTest.durationNanos),
-                    stacktrace = null,
+                    stacktrace = "",
                     logcatPath = adbDeviceTest.logcat.name,
                     filePaths = adbDeviceTest.files.map { it.name },
                     screenshots = adbDeviceTest.screenshots.map { HtmlFullTest.Screenshot(path = it.name, title = it.nameWithoutExtension) },
