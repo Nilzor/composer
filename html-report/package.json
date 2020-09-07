@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "webpack --env=dev --progress --watch",
-    "build": "npm run postcss-build && webpack --env=prod --progress",
+    "build": "npm run postcss-build && webpack --env=prod --progress && npm run copy-output",
     "postcss-dev": "postcss ./styles/index.scss -o=./build/app.min.css -w",
-    "postcss-build": "postcss ./styles/index.scss -o=./build/app.min.css"
+    "postcss-build": "postcss ./styles/index.scss -o=./build/app.min.css",
+    "copy-output" : "rm -rf ../composer/src/main/resources/html-report/ && mkdir -p ../composer/src/main/resources/html-report/ && cp -Rv build/* ../composer/src/main/resources/html-report"
   },
   "author": "",
   "license": "ISC",
