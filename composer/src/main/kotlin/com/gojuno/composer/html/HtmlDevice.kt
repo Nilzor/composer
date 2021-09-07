@@ -20,7 +20,7 @@ data class HtmlDevice(
 )
 
 fun Device.toHtmlDevice(htmlReportDir: File) = HtmlDevice(
-        id = id,
+        id = presentedId,
         model = model,
         logcatPath = logcat.relativePathTo(htmlReportDir),
         instrumentationOutputPath = instrumentationOutput.relativePathTo(htmlReportDir)

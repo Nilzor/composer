@@ -155,7 +155,7 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
                                         )
                                         .flatMap { adbDeviceTestRun ->
                                             writeJunit4Report(
-                                                    suite = adbDeviceTestRun.toSuite(testPackage.value),
+                                                    suite = adbDeviceTestRun.toSuite(testPackage.value, args.deviceAliasMap),
                                                     outputFile = File(File(args.outputDirectory, "junit4-reports"), "${device.id}.xml")
                                             ).toSingleDefault(adbDeviceTestRun)
                                         }
@@ -174,7 +174,8 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
                                 devices + Device(
                                         id = adbDeviceTestRun.adbDevice.id,
                                         model = adbDeviceTestRun.adbDevice.model,logcat = adbDeviceTestRun.logcat,
-                                        instrumentationOutput = adbDeviceTestRun.instrumentationOutput
+                                        instrumentationOutput = adbDeviceTestRun.instrumentationOutput,
+                                        presentedId = args.deviceAliasMap.get(adbDeviceTestRun.adbDevice.id) ?: adbDeviceTestRun.adbDevice.id
                                 )
                             },
                             tests = adbDeviceTestRuns.map { it.tests }.fold(emptyList()) { result, tests ->
@@ -190,7 +191,7 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
                     false -> {
                         // In "shard=false" mode test run from each device is represented as own suite of tests.
                         adbDeviceTestRuns.map {
-                            it.toSuite(testPackage.value)
+                            it.toSuite(testPackage.value, args.deviceAliasMap)
                         }
                     }
                 }
@@ -249,16 +250,18 @@ data class Device(
         val id: String,
         val model:String,
         val logcat: File,
-        val instrumentationOutput: File
+        val instrumentationOutput: File,
+        val presentedId: String = id
 )
 
-fun AdbDeviceTestRun.toSuite(testPackage: String): Suite = Suite(
+fun AdbDeviceTestRun.toSuite(testPackage: String, deviceAliasMap: Map<String, String>): Suite = Suite(
         testPackage = testPackage,
         devices = listOf(Device(
                 id = adbDevice.id,
                 model = adbDevice.model,
                 logcat = logcat,
-                instrumentationOutput = instrumentationOutput
+                instrumentationOutput = instrumentationOutput,
+                presentedId = deviceAliasMap.get(adbDevice.id) ?: adbDevice.id
         )),
         tests = tests,
         passedCount = passedCount,

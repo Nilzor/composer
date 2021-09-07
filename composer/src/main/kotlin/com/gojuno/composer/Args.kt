@@ -87,7 +87,7 @@ data class Args(
                 names = arrayOf("--device-pattern"),
                 required = false,
                 description = "Connected devices/emulators that will be used to run tests against. If not passed — tests will run on all connected devices/emulators. Specifying both `--device-pattern` and `--devices` will result in an error. Usage example: `--device-pattern \"somePatterns\"`.",
-                order = 9
+                order = 14
         )
         var devicePattern: String = "",
 
@@ -124,8 +124,29 @@ data class Args(
             description = "Extra APKs you would usually put on androidTestUtil",
             order = 13
         )
-        var extraApks: List<String> = emptyList()
-)
+        var extraApks: List<String> = emptyList(),
+
+        @Parameter(
+                names = arrayOf("--device-aliases"),
+                required = false,
+                variableArity = true,
+                description = "Map of aliases for device ID's. E.g. '1454324KZZ32=Alpha,765FF2125=Bravo'",
+                order = 8
+        )
+        var deviceAliases: List<String> = emptyList()
+) {
+        /** Converts the list of key-value pairs stored as String, to a Map */
+        val deviceAliasMap: Map<String, String> by lazy {
+                val map = mutableMapOf<String, String>()
+                for (deviceAlias in deviceAliases) {
+                        val keyVal = deviceAlias.split("=")
+                        if (keyVal.size >= 2) {
+                                map.put(keyVal[0], keyVal[1])
+                        }
+                }
+                map
+        }
+}
 
 // No way to share array both for runtime and annotation without reflection.
 private val PARAMETER_HELP_NAMES = setOf("--help", "-help", "help", "-h")

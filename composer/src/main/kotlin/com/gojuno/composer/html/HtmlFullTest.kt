@@ -1,6 +1,7 @@
 package com.gojuno.composer.html
 
 import com.gojuno.composer.AdbDeviceTest
+import com.gojuno.composer.pathSafeId
 import com.google.gson.annotations.SerializedName
 import java.io.File
 import java.util.concurrent.TimeUnit.NANOSECONDS
@@ -88,7 +89,7 @@ fun AdbDeviceTest.toHtmlFullTest(suiteId: String, htmlReportDir: File) = HtmlFul
             else -> ""
         },
         logcatPath = logcat.relativePathTo(htmlReportDir),
-        deviceId = adbDevice.id,
+        deviceId = adbDevice.pathSafeId,
         deviceModel = adbDevice.model,
         properties = emptyMap(), // TODO: add properties support.
         filePaths = files.map { it.relativePathTo(htmlReportDir) },
