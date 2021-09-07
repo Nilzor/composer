@@ -6,6 +6,7 @@ buildscript {
     apply from: 'dependencies.gradle'
 
     repositories {
+        mavenLocal()
         jcenter()
     }
 
@@ -19,6 +20,7 @@ buildscript {
 
 allprojects {
     repositories {
+        mavenLocal()
         jcenter()
         maven {
             url  "https://dl.bintray.com/nilzor/maven"

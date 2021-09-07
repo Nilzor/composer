@@ -5,6 +5,7 @@ import com.gojuno.composer.InstrumentationTest.Status.Ignored
 import com.gojuno.composer.InstrumentationTest.Status.Passed
 import rx.Observable
 import java.io.File
+import java.lang.NumberFormatException
 
 data class InstrumentationTest(
         val index: Int,
@@ -82,13 +83,13 @@ private fun String.throwIfError(output: File) = when {
 
 private fun parseInstrumentationEntry(str: String): InstrumentationEntry =
         InstrumentationEntry(
-                numTests = str.parseInstrumentationStatusValue("numtests").toInt(),
+                numTests = str.parseInstrumentationStatusValue("numtests").tryToInt(),
                 stream = str.parseInstrumentationStatusValue("stream"),
                 stack = str.parseInstrumentationStatusValue("stack"),
                 id = str.parseInstrumentationStatusValue("id"),
                 test = str.parseInstrumentationStatusValue("test"),
                 clazz = str.parseInstrumentationStatusValue("class"),
-                current = str.parseInstrumentationStatusValue("current").toInt(),
+                current = str.parseInstrumentationStatusValue("current").tryToInt(),
                 statusCode = str.substringBetween("INSTRUMENTATION_STATUS_CODE: ", "INSTRUMENTATION_STATUS")
                         .trim()
                         .toInt()
@@ -187,4 +188,13 @@ fun Observable<InstrumentationEntry>.asTests(): Observable<InstrumentationTest> 
             }
             .filter { it.tests.isNotEmpty() }
             .flatMap { Observable.from(it.tests) }
+}
+
+
+fun String.tryToInt(defaultValue: Int = -1): Int {
+    return try {
+        this.toInt()
+    } catch (ex: NumberFormatException) {
+        defaultValue
+    }
 }
