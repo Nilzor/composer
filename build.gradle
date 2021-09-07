@@ -23,7 +23,7 @@ allprojects {
         mavenLocal()
         jcenter()
         maven {
-            url  "https://dl.bintray.com/nilzor/maven"
+            url  "https://jitpack.io"
         }
     }
 
