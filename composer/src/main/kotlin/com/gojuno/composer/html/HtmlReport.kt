@@ -21,7 +21,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
 
     val htmlIndexJson = gson.toJson(
             HtmlIndex(
-                    suites = suites.mapIndexed { index, suite -> suite.toHtmlShortSuite(id = "$index", htmlReportDir = outputDir) }
+                    suites = suites.mapIndexed { index, suite -> suite.toHtmlShortSuite(id = getSuiteName(suite, index), htmlReportDir = outputDir) }
             )
     )
 
@@ -54,8 +54,9 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
 
     val suitesDir = File(outputDir, "suites").apply { mkdirs() }
 
-    suites.mapIndexed { suiteId, suite ->
-        val suiteJson = gson.toJson(suite.toHtmlFullSuite(id = "$suiteId", htmlReportDir = suitesDir))
+    suites.mapIndexed { suiteIx, suite ->
+        val suiteId = getSuiteName(suite, suiteIx)
+        val suiteJson = gson.toJson(suite.toHtmlFullSuite(id = suiteId, htmlReportDir = suitesDir))
         val suiteHtmlFile = File(suitesDir, "$suiteId.html")
 
         suiteHtmlFile.writeText(indexHtml
@@ -67,8 +68,8 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
 
         suite
                 .tests
-                .map { it to File(File(suitesDir, "$suiteId"), it.adbDevice.pathSafeId).apply { mkdirs() } }
-                .map { (test, testDir) -> Triple(test, test.toHtmlFullTest(suiteId = "$suiteId", htmlReportDir = testDir), testDir) }
+                .map { it to File(File(suitesDir, suiteId), it.adbDevice.pathSafeId).apply { mkdirs() } }
+                .map { (test, testDir) -> Triple(test, test.toHtmlFullTest(suiteId = suiteId, htmlReportDir = testDir), testDir) }
                 .forEach { (test, htmlTest, testDir) ->
                     val testJson = gson.toJson(htmlTest)
                     val testHtmlFile = File(testDir, "${htmlTest.id}.html")
@@ -81,6 +82,10 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                     )
                 }
     }
+}
+
+fun getSuiteName(suite: Suite, index: Int): String {
+    return if (suite.devices.size == 1) suite.devices[0].presentedId.replace(":","_") else index.toString()
 }
 
 /**
