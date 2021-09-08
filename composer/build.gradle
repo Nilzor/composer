@@ -100,7 +100,7 @@ publishing {
                 def root = asNode()
                 root.appendNode('description', 'Reactive Android Instrumentation Test Runner.')
                 root.appendNode('name', 'Composer')
-                root.appendNode('url', 'https://github.com/gojuno/composer')
+                root.appendNode('url', 'https://github.com/nilzor/composer')
                 root.children().last() + pomConfig
             }
         }
