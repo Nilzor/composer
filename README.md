@@ -11,9 +11,10 @@ Composer is a modern reactive replacement for [square/spoon][spoon] with followi
 
 ### Fork additions
 
-This repo is a fork of [gojuno/commander](https://github.com/gojuno/commander). Additions I've made:
+This repo is a fork of [gojuno/commander](https://github.com/gojuno/commander). Additions I (Nilzor) have made:
 
-- Added Windows support
+- Added Windows support by improving command line interfacing and folder name scheme
+- Added command line parameter `--device-aliases` (see below)
 
 ### Table of Contents
 
@@ -165,7 +166,7 @@ java -jar composer-latest-version.jar \
 
 ### Download
 
-No binary download of this build is currently available. Please clone and build the project.
+- See [Releases](https://github.com/nilzor/composer/releases)
  
 ### 3rd-party Composer Gradle Plugin
 
