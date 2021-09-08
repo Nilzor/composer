@@ -115,9 +115,9 @@ Composer shipped as jar, to run it you need JVM 1.8+: `java -jar composer-latest
   * Default: empty, tests will run on all connected devices/emulators.
   * Specifying both `--device-pattern` and `--devices` will result in an error.
   * Example: `--device-pattern "emulator.+"`
-* '--device-aliases'
-  * List of comma separated key-value pairs of device ID aliases. 
-  * Example: `--device-aliases "123=Alpha,345=Bravo"`
+* `--device-aliases`
+  * List of comma separated key-value pairs of device ID aliases. Will replace the Android Device IDs in the suite list (but not in report details). 
+  * Example: `--device-aliases "123QR=SamsungS10,345AF=SamsungS20"`
 * `--install-timeout`
   * APK installation timeout in seconds. 
   * Default: `120` seconds (2 minutes). 
