@@ -156,7 +156,7 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
                                         .flatMap { adbDeviceTestRun ->
                                             writeJunit4Report(
                                                     suite = adbDeviceTestRun.toSuite(testPackage.value, args.deviceAliasMap),
-                                                    outputFile = File(File(args.outputDirectory, "junit4-reports"), "${device.id}.xml")
+                                                    outputFile = File(File(args.outputDirectory, "junit4-reports"), "${device.pathSafeId}.xml")
                                             ).toSingleDefault(adbDeviceTestRun)
                                         }
                                         .subscribeOn(Schedulers.io())
