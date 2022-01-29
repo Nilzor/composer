@@ -133,7 +133,16 @@ data class Args(
                 description = "Map of aliases for device ID's. E.g. '1454324KZZ32=Alpha,765FF2125=Bravo'",
                 order = 8
         )
-        var deviceAliases: List<String> = emptyList()
+        var deviceAliases: List<String> = emptyList(),
+
+        @Parameter(
+                names = arrayOf("--screenshot-folder"),
+                required = false,
+                arity = 1,
+                description = "Device folder name containing screenshots from tests. Default: /storage/emulated/0/app_spoon-screenshots",
+                order = 14
+        )
+        var spoonFolder: String = "/storage/emulated/0/app_spoon-screenshots/"
 ) {
         /** Converts the list of key-value pairs stored as String, to a Map */
         val deviceAliasMap: Map<String, String> by lazy {

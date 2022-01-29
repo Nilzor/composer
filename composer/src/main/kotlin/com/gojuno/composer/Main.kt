@@ -145,6 +145,7 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
 
                                 device
                                         .runTests(
+                                                screenshotFolderOnDevice = args.spoonFolder,
                                                 testPackageName = testPackageName,
                                                 testRunnerClass = testRunnerClass,
                                                 instrumentationArguments = instrumentationArguments.formatInstrumentationArguments(),

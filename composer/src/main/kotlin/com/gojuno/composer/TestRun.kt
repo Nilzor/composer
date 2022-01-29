@@ -45,7 +45,8 @@ fun AdbDevice.runTests(
         outputDir: File,
         verboseOutput: Boolean,
         keepOutput: Boolean,
-        useTestServices: Boolean
+        useTestServices: Boolean,
+        screenshotFolderOnDevice: String
 ): Single<AdbDeviceTestRun> {
 
     val adbDevice = this
@@ -66,6 +67,7 @@ fun AdbDevice.runTests(
             keepOutputOnExit = keepOutput
     ).share()
 
+    adbDevice.log("Will pull screenshots from device folder $screenshotFolderOnDevice")
     @Suppress("destructure")
     val runningTests = runTests
             .ofType(Notification.Start::class.java)
@@ -85,7 +87,7 @@ fun AdbDevice.runTests(
                 )
             }
             .flatMap { test ->
-                pullTestFiles(adbDevice, test, outputDir, verboseOutput)
+                pullTestFiles(adbDevice, test, outputDir, verboseOutput, screenshotFolderOnDevice)
                         .toObservable()
                         .subscribeOn(Schedulers.io())
                         .map { pulledFiles -> test to pulledFiles }
@@ -158,20 +160,21 @@ data class PulledFiles(
         val screenshots: List<File>
 )
 
-private fun pullTestFiles(adbDevice: AdbDevice, test: InstrumentationTest, outputDir: File, verboseOutput: Boolean): Single<PulledFiles> = Single
-        // TODO: Add support for spoon files dir.
+private fun pullTestFiles(adbDevice: AdbDevice, test: InstrumentationTest, outputDir: File, verboseOutput: Boolean, screenshotFolderOnDevice: String): Single<PulledFiles> = Single
         .fromCallable {
-            File(File(File(outputDir, "screenshots"), adbDevice.id), test.className).apply { mkdirs() }
+            File(File(File(outputDir, "screenshots"), adbDevice.pathSafeId), test.className).apply { mkdirs() }
         }
         .flatMap { screenshotsFolderOnHostMachine ->
+            val folderOnDevice = "$screenshotFolderOnDevice/${test.className}/${test.testName}"
             adbDevice
                     .pullFolder(
-                            // TODO: Add support for internal storage and external storage strategies.
-                            folderOnDevice = "/storage/emulated/0/app_spoon-screenshots/${test.className}/${test.testName}",
+                            folderOnDevice = folderOnDevice,
                             folderOnHostMachine = screenshotsFolderOnHostMachine,
                             logErrors = verboseOutput
                     )
-                    .map { File(screenshotsFolderOnHostMachine, test.testName) }
+                    .map {
+                        File(screenshotsFolderOnHostMachine, test.testName)
+                    }
         }
         .map { screenshotsFolderOnHostMachine ->
             PulledFiles(

@@ -1,3 +1,4 @@
+
 ## Composer — Reactive Android Instrumentation Test Runner.
 
 Composer is a modern reactive replacement for [square/spoon][spoon] with following feature set:
@@ -141,6 +142,8 @@ Composer shipped as jar, to run it you need JVM 1.8+: `java -jar composer-latest
   * Default: empty, only apk and test apk would be installed.
   * Works great with Orchestrator to install orchestrator & test services APKs.
   * Example: `--extra-apks path/to/apk/first.apk path/to/apk/second.apk`
+* `-screenshot-folder`
+  * Device folder from where to pull test screenshots. Default: /storage/emulated/0/app_spoon-screenshots    
   
 ##### Example
 
