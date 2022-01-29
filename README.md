@@ -16,6 +16,7 @@ This repo is a fork of [gojuno/commander](https://github.com/gojuno/commander). 
 
 - Added Windows support by improving command line interfacing and folder name scheme
 - Added command line parameter `--device-aliases` (see below)
+- Added command line parameter `--screenshot-folder` (see below)
 
 ### Table of Contents
 
