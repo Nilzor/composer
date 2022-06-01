@@ -7,6 +7,7 @@ apply plugin: 'com.jfrog.bintray'
 
 mainClassName = 'com.gojuno.composer.MainKt'
 
+// See dependencies.gradle
 dependencies {
     compile libraries.kotlinStd
     compile libraries.rxJava
