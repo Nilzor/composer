@@ -1,5 +1,6 @@
 package com.gojuno.composer.html
 
+import com.gojuno.composer.AdbDeviceTest
 import com.gojuno.composer.Suite
 import com.gojuno.composer.pathSafeId
 import com.google.gson.Gson
@@ -73,15 +74,33 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                 .forEach { (test, htmlTest, testDir) ->
                     val testJson = gson.toJson(htmlTest)
                     val testHtmlFile = File(testDir, "${htmlTest.id}.html")
+                    val stackTraceHtml = generateStackTrace(test.status)
 
                     testHtmlFile.writeText(indexHtml
                             .replace("\${relative_path}", testHtmlFile.relativePathToHtmlDir())
                             .replace("\${data_json}", "window.test = $testJson")
                             .replace("\${date}", formattedDate)
+                            .replace("\${stacktrace}", stackTraceHtml)
                             .replace("\${log}", generateLogcatHtml(test.logcat))
                     )
                 }
     }
+}
+
+fun generateStackTrace(status: AdbDeviceTest.Status): String {
+    return when (status) {
+        is AdbDeviceTest.Status.Failed -> return generateStackTrace(status.stacktrace)
+        else  -> ""
+    }
+}
+
+fun generateStackTrace(stackTrace: String) : String {
+    return "<div class='content'>\n" +
+     "<div class='title-common'>Stacktrace</div>\n" +
+     "<div class='card log'>\n" +
+       stackTrace.replace("\n", "<br>\n") +
+    "</div>\n" +
+    "</div>\n"
 }
 
 fun getSuiteName(suite: Suite, index: Int): String {
@@ -98,10 +117,11 @@ fun inputStreamFromResources(path: String): InputStream = Suite::class.java.clas
 
 fun generateLogcatHtml(logcatOutput: File): String = when (logcatOutput.exists()) {
     false -> ""
-    true -> logcatOutput
+    true -> "" +
+            logcatOutput
             .readLines()
             .map { line -> """<div class="log__${cssClassForLogcatLine(line)}">${StringEscapeUtils.escapeXml11(line)}</div>""" }
-            .fold(StringBuilder("""<div class="content"><div class="card log">""")) { stringBuilder, line ->
+            .fold(StringBuilder("""<div class="content"><div class='title-common'>Logcat</div><div class="card log">""")) { stringBuilder, line ->
                 stringBuilder.appendln(line)
             }
             .appendln("""</div></div>""")
