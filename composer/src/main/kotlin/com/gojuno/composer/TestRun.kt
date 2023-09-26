@@ -134,23 +134,23 @@ fun AdbDevice.runTests(
     val testRunFinish = runTests.ofType(Notification.Exit::class.java).cache()
 
     val saveLogcat = saveLogcat(adbDevice, logsDir)
-            .map { Unit }
-            // TODO: Stop when all expected tests were parsed from logcat and not when instrumentation finishes.
-            // Logcat may be delivered with delay and that may result in missing logcat for last (n) tests (it's just a theory though).
-            .takeUntil(testRunFinish)
-            .startWith(Unit) // To allow zip finish normally even if no tests were run.
 
     return Observable
-            .zip(adbDeviceTestRun, saveLogcat, testRunFinish) { suite, _, _ -> suite }
+            .zip(adbDeviceTestRun, saveLogcat, testRunFinish) { suite, adbProcess, _ ->
+                 suite to adbProcess
+            }
             .doOnSubscribe { adbDevice.log("Starting tests...") }
-            .doOnNext { testRun ->
+            .doOnNext { (testRun, adbProcess) ->
                 adbDevice.log(
                         "Test run finished, " +
                         "${testRun.passedCount} passed, " +
                         "${testRun.failedCount} failed, took " +
                         "${testRun.durationNanos.nanosToHumanReadableTime()}."
                 )
+                log("Stopping ADB logcat listener - PID ${adbProcess.pid()}")
+                adbProcess.destroy()
             }
+            .map { (testRun, _) -> testRun }
             .doOnError { adbDevice.log("Error during tests run: $it") }
             .toSingle()
 }
@@ -202,39 +202,44 @@ internal fun String.parseTestClassAndName(): Pair<String, String>? {
     return null
 }
 
-private fun saveLogcat(adbDevice: AdbDevice, logsDir: File): Observable<Pair<String, String>> = Observable
-        .just(logsDir to logcatFileForDevice(logsDir))
-        .flatMap { (logsDir, fullLogcatFile) -> adbDevice.redirectLogcatToFile(fullLogcatFile).toObservable().map { logsDir to fullLogcatFile } }
-        .flatMap { (logsDir, fullLogcatFile) ->
-            data class result(val logcat: String = "", val startedTestClassAndName: Pair<String, String>? = null, val finishedTestClassAndName: Pair<String, String>? = null)
+private fun saveLogcat(adbDevice: AdbDevice, logsDir: File): Observable<Process> {
+    val dirAndFile = logsDir to logcatFileForDevice(logsDir)
+    val fullLogcatFile = dirAndFile.second
+    var process: Process? = null
+    data class result(val logcat: String = "", val startedTestClassAndName: Pair<String, String>? = null, val finishedTestClassAndName: Pair<String, String>? = null)
+    return adbDevice.redirectLogcatToFile(fullLogcatFile).toObservable().flatMap {
+        process = it
+        tail(fullLogcatFile).scan(result()) { previous, newline ->
+            val logcat = when (previous.startedTestClassAndName != null && previous.finishedTestClassAndName != null) {
+                true -> newline
+                false -> "${previous.logcat}\n$newline"
+            }
 
-            tail(fullLogcatFile)
-                    .scan(result()) { previous, newline ->
-                        val logcat = when (previous.startedTestClassAndName != null && previous.finishedTestClassAndName != null) {
-                            true -> newline
-                            false -> "${previous.logcat}\n$newline"
-                        }
+            // Implicitly expecting to see logs from `android.support.test.internal.runner.listener.LogRunListener`.
+            // Was not able to find more reliable solution to capture logcat per test.
+            val startedTest: Pair<String, String>? = newline.parseTestClassAndName()
+            val finishedTest: Pair<String, String>? = newline.parseTestClassAndName()
 
-                        // Implicitly expecting to see logs from `android.support.test.internal.runner.listener.LogRunListener`.
-                        // Was not able to find more reliable solution to capture logcat per test.
-                        val startedTest: Pair<String, String>? = newline.parseTestClassAndName()
-                        val finishedTest: Pair<String, String>? = newline.parseTestClassAndName()
-
-                        result(
-                                logcat = logcat,
-                                startedTestClassAndName = startedTest ?: previous.startedTestClassAndName,
-                                finishedTestClassAndName = finishedTest // Actual finished test should always overwrite previous.
-                        )
-                    }
-                    .filter { it.startedTestClassAndName != null && it.startedTestClassAndName == it.finishedTestClassAndName }
-                    .map { result ->
-                        logcatFileForTest(logsDir, className = result.startedTestClassAndName!!.first, testName = result.startedTestClassAndName.second)
-                                .apply { parentFile.mkdirs() }
-                                .writeText(result.logcat)
-
-                        result.startedTestClassAndName
-                    }
-        }
+            result(
+                logcat = logcat,
+                startedTestClassAndName = startedTest ?: previous.startedTestClassAndName,
+                finishedTestClassAndName = finishedTest // Actual finished test should always overwrite previous.
+            )
+        }.filter { it.startedTestClassAndName != null && it.startedTestClassAndName == it.finishedTestClassAndName }
+            .map { result ->
+                logcatFileForTest(
+                    logsDir,
+                    className = result.startedTestClassAndName!!.first,
+                    testName = result.startedTestClassAndName.second
+                )
+                    .apply { parentFile.mkdirs() }
+                    .writeText(result.logcat)
+                result.startedTestClassAndName
+            }
+    }.map {
+        process!!
+    }
+}
 
 private fun logcatFileForDevice(logsDir: File) = File(logsDir, "full.logcat")
 
