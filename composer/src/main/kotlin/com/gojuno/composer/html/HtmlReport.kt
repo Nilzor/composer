@@ -51,6 +51,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
             .replace("\${data_json}", "window.mainData = $htmlIndexJson")
             .replace("\${date}", formattedDate)
             .replace("\${log}", "")
+            .replace("\${stacktrace}", "")
     )
 
     val suitesDir = File(outputDir, "suites").apply { mkdirs() }
