@@ -8,6 +8,7 @@ import rx.Observable
 import rx.Single
 import rx.schedulers.Schedulers
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 data class AdbDeviceTestRun(
         val adbDevice: AdbDevice,
@@ -133,10 +134,14 @@ fun AdbDevice.runTests(
 
     val testRunFinish = runTests.ofType(Notification.Exit::class.java).cache()
 
-    val saveLogcat = saveLogcat(adbDevice, logsDir)
+    // Clearing logcat before starting listening will reduce the delay for receiving relevant lines to a minimum
+    // There will still be a delay so there is a possibility that we might not get test-specific log lines
+    // stored to disk. Solution for that would be to wait explicitly for log lines from TestRunner before
+    // killing the log listener and completing the test run
+    val clearAndSaveLogcat = clearLogcat(adbDevice).flatMap { saveLogcat(adbDevice, logsDir) }
 
     return Observable
-            .zip(adbDeviceTestRun, saveLogcat, testRunFinish) { suite, adbProcess, _ ->
+            .zip(adbDeviceTestRun, clearAndSaveLogcat, testRunFinish) { suite, adbProcess, _ ->
                  suite to adbProcess
             }
             .doOnSubscribe { adbDevice.log("Starting tests...") }
@@ -240,6 +245,14 @@ private fun saveLogcat(adbDevice: AdbDevice, logsDir: File): Observable<Process>
         process!!
     }
 }
+
+/** Clear logcat */
+private fun clearLogcat(adbDevice: AdbDevice) =
+    process(listOf(adb, "-s", adbDevice.id, "logcat", "-c"), timeout = 5 to TimeUnit.SECONDS)
+        .ofType(Notification.Exit::class.java)
+        .doOnError { adbDevice.log("Error attempting to clear logcat for device") }
+        .take(1)
+        .doOnCompleted { adbDevice.log("Logcat cleared") }
 
 private fun logcatFileForDevice(logsDir: File) = File(logsDir, "full.logcat")
 
