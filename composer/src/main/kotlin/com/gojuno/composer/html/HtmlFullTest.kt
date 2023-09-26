@@ -21,7 +21,7 @@ data class HtmlFullTest(
         val name: String,
 
         @SerializedName("id")
-        val id: String = "$packageName$className$name",
+        val id: String = "$packageName$className.$name",
 
         @SerializedName("duration_millis")
         val durationMillis: Long,
