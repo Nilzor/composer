@@ -140,12 +140,15 @@ fun AdbDevice.runTests(
     // killing the log listener and completing the test run
     val clearAndSaveLogcat = clearLogcat(adbDevice).flatMap { saveLogcat(adbDevice, logsDir) }
 
+    var adbLogcatProcessMap = mutableListOf<Process>()
+
     return Observable
             .zip(adbDeviceTestRun, clearAndSaveLogcat, testRunFinish) { suite, adbProcess, _ ->
                  suite to adbProcess
             }
             .doOnSubscribe { adbDevice.log("Starting tests...") }
             .doOnNext { (testRun, adbProcess) ->
+                adbLogcatProcessMap.add(adbProcess)
                 adbDevice.log(
                         "Test run finished, " +
                         "${testRun.passedCount} passed, " +
@@ -156,7 +159,13 @@ fun AdbDevice.runTests(
                 adbProcess.destroy()
             }
             .map { (testRun, _) -> testRun }
-            .doOnError { adbDevice.log("Error during tests run: $it") }
+            .doOnError {
+                adbDevice.log("Error during tests run: $it")
+                log("Killing ${adbLogcatProcessMap.size} ADB logcat listeners")
+                try {
+                    adbLogcatProcessMap.forEach { it.destroy() }
+                } catch (ex: Exception) { }
+            }
             .toSingle()
 }
 
