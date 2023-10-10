@@ -138,17 +138,20 @@ fun AdbDevice.runTests(
     // There will still be a delay so there is a possibility that we might not get test-specific log lines
     // stored to disk. Solution for that would be to wait explicitly for log lines from TestRunner before
     // killing the log listener and completing the test run
-    val clearAndSaveLogcat = clearLogcat(adbDevice).flatMap { saveLogcat(adbDevice, logsDir) }
-
-    var adbLogcatProcessMap = mutableListOf<Process>()
+    var adbLogcatProcess: Process? = null
+    val clearAndSaveLogcat = clearLogcat(adbDevice)
+        .flatMap { saveLogcat(adbDevice, logsDir) }
+        .doOnNext {
+            log("Logcat parsing process started with PID ${it.pid()}")
+            adbLogcatProcess = it
+        }
 
     return Observable
             .zip(adbDeviceTestRun, clearAndSaveLogcat, testRunFinish) { suite, adbProcess, _ ->
-                 suite to adbProcess
+                suite to adbProcess
             }
             .doOnSubscribe { adbDevice.log("Starting tests...") }
             .doOnNext { (testRun, adbProcess) ->
-                adbLogcatProcessMap.add(adbProcess)
                 adbDevice.log(
                         "Test run finished, " +
                         "${testRun.passedCount} passed, " +
@@ -161,9 +164,11 @@ fun AdbDevice.runTests(
             .map { (testRun, _) -> testRun }
             .doOnError {
                 adbDevice.log("Error during tests run: $it")
-                log("Killing ${adbLogcatProcessMap.size} ADB logcat listeners")
                 try {
-                    adbLogcatProcessMap.forEach { it.destroy() }
+                    adbLogcatProcess?.let { adbProc ->
+                        log("Killing ADB process with PID ${adbProc.pid()}")
+                        adbProc.destroy()
+                    } ?: log("No ADB process to kill")
                 } catch (ex: Exception) { }
             }
             .toSingle()
@@ -216,48 +221,57 @@ internal fun String.parseTestClassAndName(): Pair<String, String>? {
     return null
 }
 
+/**
+ * Emits a single Process as soon as Logcat parsing has started
+ */
 private fun saveLogcat(adbDevice: AdbDevice, logsDir: File): Observable<Process> {
     val dirAndFile = logsDir to logcatFileForDevice(logsDir)
     val fullLogcatFile = dirAndFile.second
-    var process: Process? = null
-    data class result(val logcat: String = "", val startedTestClassAndName: Pair<String, String>? = null, val finishedTestClassAndName: Pair<String, String>? = null)
-    return adbDevice.redirectLogcatToFile(fullLogcatFile).toObservable().flatMap {
-        process = it
-        tail(fullLogcatFile).scan(result()) { previous, newline ->
-            val logcat = when (previous.startedTestClassAndName != null && previous.finishedTestClassAndName != null) {
-                true -> newline
-                false -> "${previous.logcat}\n$newline"
-            }
 
-            // Implicitly expecting to see logs from `android.support.test.internal.runner.listener.LogRunListener`.
-            // Was not able to find more reliable solution to capture logcat per test.
-            val startedTest: Pair<String, String>? = newline.parseTestClassAndName()
-            val finishedTest: Pair<String, String>? = newline.parseTestClassAndName()
-
-            result(
-                logcat = logcat,
-                startedTestClassAndName = startedTest ?: previous.startedTestClassAndName,
-                finishedTestClassAndName = finishedTest // Actual finished test should always overwrite previous.
-            )
-        }.filter { it.startedTestClassAndName != null && it.startedTestClassAndName == it.finishedTestClassAndName }
-            .map { result ->
-                logcatFileForTest(
-                    logsDir,
-                    className = result.startedTestClassAndName!!.first,
-                    testName = result.startedTestClassAndName.second
-                )
-                    .apply { parentFile.mkdirs() }
-                    .writeText(result.logcat)
-                result.startedTestClassAndName
-            }
-    }.map {
-        process!!
+    return adbDevice.redirectLogcatToFile(fullLogcatFile).toObservable().doOnNext {
+        processLogCat(fullLogcatFile, logsDir)
     }
+}
+
+private fun processLogCat(fullLogcatFile: File, logsDir: File) {
+    data class Result(val logcat: String = "", val startedTestClassAndName: Pair<String, String>? = null, val finishedTestClassAndName: Pair<String, String>? = null)
+
+    tail(fullLogcatFile).scan(Result()) { previous, newline ->
+        val logcat = when (previous.startedTestClassAndName != null && previous.finishedTestClassAndName != null) {
+            true -> newline
+            false -> "${previous.logcat}\n$newline" +
+                    "¨"
+        }
+
+        // Implicitly expecting to see logs from `android.support.test.internal.runner.listener.LogRunListener`.
+        // Was not able to find more reliable solution to capture logcat per test.
+        val startedTest: Pair<String, String>? = newline.parseTestClassAndName()
+        val finishedTest: Pair<String, String>? = newline.parseTestClassAndName()
+
+        val res = Result(
+            logcat = logcat,
+            startedTestClassAndName = startedTest ?: previous.startedTestClassAndName,
+            finishedTestClassAndName = finishedTest // Actual finished test should always overwrite previous.
+        )
+        if (res.startedTestClassAndName != null && res.startedTestClassAndName == res.finishedTestClassAndName) {
+            logcatFileForTest(
+                logsDir,
+                className = res.startedTestClassAndName.first,
+                testName = res.startedTestClassAndName.second
+            )
+                .apply { parentFile.mkdirs() }
+                .writeText(res.logcat)
+            res.startedTestClassAndName
+        }
+        res
+    }.observeOn(Schedulers.computation())
+        .subscribeOn(Schedulers.computation())
+        .subscribe()
 }
 
 /** Clear logcat */
 private fun clearLogcat(adbDevice: AdbDevice) =
-    process(listOf(adb, "-s", adbDevice.id, "logcat", "-c"), timeout = 5 to TimeUnit.SECONDS)
+    process(listOf(adb, "-s", adbDevice.id, "logcat", "-c"), timeout = 5 to TimeUnit.SECONDS, destroyOnUnsubscribe = true)
         .ofType(Notification.Exit::class.java)
         .doOnError { adbDevice.log("Error attempting to clear logcat for device") }
         .take(1)
