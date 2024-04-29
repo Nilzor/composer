@@ -66,6 +66,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                 .replace("\${data_json}", "window.suite = $suiteJson")
                 .replace("\${date}", formattedDate)
                 .replace("\${log}", "")
+                .replace("\${stacktrace}", "")
         )
 
         suite
