@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "webpack --env=dev --progress --watch",
     "build": "npm run postcss-build && webpack --env=prod --progress && npm run copy-output",
+    "build-win": "npm run postcss-build && webpack --env=prod --progress && .\\win-copy-html-build.ps1",
     "postcss-dev": "postcss ./styles/index.scss -o=./build/app.min.css -w",
     "postcss-build": "postcss ./styles/index.scss -o=./build/app.min.css",
-    "copy-output" : "rm -rf ../composer/src/main/resources/html-report/ && mkdir -p ../composer/src/main/resources/html-report/ && cp -Rv build/* ../composer/src/main/resources/html-report"
+    "copy-output": "rm -rf ../composer/src/main/resources/html-report/ && mkdir -p ../composer/src/main/resources/html-report/ && cp -Rv build/* ../composer/src/main/resources/html-report"
   },
   "author": "",
   "license": "ISC",
@@ -37,10 +38,11 @@
     "react-dom": "^15.5.4",
     "react-router-dom": "^4.1.1",
     "uglifyjs-webpack-plugin": "^0.4.3",
-    "webpack": "^2.6.1"
+    "webpack": "^2.7.0"
   },
   "devDependencies": {
     "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-preset-latest": "^6.24.1"
+    "babel-preset-latest": "^6.24.1",
+    "webpack-cli": "^5.1.4"
   }
 }
