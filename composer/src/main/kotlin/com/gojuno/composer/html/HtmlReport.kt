@@ -26,7 +26,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
             )
     )
 
-    val formattedDate = SimpleDateFormat("HH:mm:ss z, MMM d yyyy").apply { timeZone = TimeZone.getTimeZone("UTC") }.format(date)
+    val formattedDate = SimpleDateFormat("HH:mm:ss z, MMM d yyyy", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(date)
 
     val appJs = File(outputDir, "app.min.js")
     inputStreamFromResources("html-report/app.min.js").copyTo(appJs.outputStream())

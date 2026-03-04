@@ -83,7 +83,8 @@ class HtmlReportSpec : Spek({
         val date by memoized { Date(1496848677000) }
 
         perform {
-            writeHtmlReport(Gson(), suites, outputDir, date).subscribe(subscriber)
+            val gson = Gson() // todo pretty print
+            writeHtmlReport(gson, suites, outputDir, date).subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -96,9 +97,8 @@ class HtmlReportSpec : Spek({
             subscriber.assertNoErrors()
         }
 
-        fun String.removeEmptyLines() = lines().filter { it.trim() != "" }.joinToString(separator = "\n") { it }
-
         it("creates index html") {
+            val suiteName = adbDevice1.id
             assertThat(File(outputDir, "index.html").readText().removeEmptyLines()).isEqualTo(
                     """
                     <!doctype html>
@@ -109,7 +109,7 @@ class HtmlReportSpec : Spek({
                         <title>Composer</title>
                         <link href="app.min.css" rel="stylesheet">
                         <script>
-                          window.mainData = {"suites":[{"id":"0","passed_count":2,"ignored_count":0,"failed_count":1,"duration_millis":2468,"devices":[{"id":"device1","model":"model1","logcat_path":"device1.logcat","instrumentation_output_path":"device1.instrumentation"}]}]}
+                          window.mainData = {"suites":[{"id":"$suiteName","passed_count":2,"ignored_count":0,"failed_count":1,"duration_millis":2468,"devices":[{"id":"device1","model":"model1","logcat_path":"device1.logcat","instrumentation_output_path":"device1.instrumentation"}]}]}
                           // window.mainData / window.suite / window.test={ json }
                         </script>
                       </head>
@@ -125,7 +125,9 @@ class HtmlReportSpec : Spek({
         }
 
         it("creates suite html") {
-            assertThat(File(File(outputDir, "suites"), "0.html").readText().removeEmptyLines()).isEqualTo(
+            val suiteName = adbDevice1.id
+            val file = File(File(outputDir, "suites"), "${adbDevice1.id}.html")
+            assertThat(file.readNormalized()).isEqualTo(
                     """
                             <!doctype html>
                             <html lang="en">
@@ -135,7 +137,7 @@ class HtmlReportSpec : Spek({
                                 <title>Composer</title>
                                 <link href="../app.min.css" rel="stylesheet">
                                 <script>
-                                  window.suite = {"id":"0","tests":[{"id":"com.gojuno.example1TestClasstest1","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test1","duration_millis":1234,"status":"passed","deviceId":"device1","deviceModel":"model1","properties":{}},{"id":"com.gojuno.example1TestClasstest2","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test2","duration_millis":1234,"status":"failed","deviceId":"device1","deviceModel":"model1","properties":{}}],"passed_count":2,"ignored_count":0,"failed_count":1,"duration_millis":2468,"devices":[{"id":"device1","model":"model1","logcat_path":"../device1.logcat","instrumentation_output_path":"../device1.instrumentation"}]}
+                                  window.suite = {"id":"$suiteName","tests":[{"id":"com.gojuno.example1TestClass.test1","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test1","duration_millis":1234,"status":"passed","deviceId":"device1","deviceModel":"model1","properties":{}},{"id":"com.gojuno.example1TestClass.test2","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test2","duration_millis":1234,"status":"failed","deviceId":"device1","deviceModel":"model1","properties":{}}],"passed_count":2,"ignored_count":0,"failed_count":1,"duration_millis":2468,"devices":[{"id":"device1","model":"model1","logcat_path":"../device1.logcat","instrumentation_output_path":"../device1.instrumentation"}]}
                                   // window.mainData / window.suite / window.test={ json }
                                 </script>
                               </head>
@@ -150,7 +152,9 @@ class HtmlReportSpec : Spek({
         }
 
         it("creates html for 1st test") {
-            assertThat(File(File(File(File(outputDir, "suites"), "0"), "device1"), "com.gojuno.example1TestClasstest1.html").readText().removeEmptyLines()).isEqualTo(
+            val suiteName = adbDevice1.id // Default suite name changed to device name for clarity when only one suite is run
+            val file = File(File(File(File(outputDir, "suites"), suiteName), "device1"), "com.gojuno.example1TestClass.test1.html")
+            assertThat(file.readNormalized()).isEqualTo(
                     """
                             <!doctype html>
                             <html lang="en">
@@ -160,7 +164,7 @@ class HtmlReportSpec : Spek({
                                 <title>Composer</title>
                                 <link href="../../../app.min.css" rel="stylesheet">
                                 <script>
-                                  window.test = {"suite_id":"0","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test1","id":"com.gojuno.example1TestClasstest1","duration_millis":1234,"status":"passed","logcat_path":"../../../com.gojuno.example1.TestClass/test1.logcat","deviceId":"device1","deviceModel":"model1","properties":{},"file_paths":["../../../com.gojuno.example1.TestClass.test1/file1","../../../com.gojuno.example1.TestClass.test1/file2"],"screenshots":[{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot1","title":"screenshot1"},{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot2","title":"screenshot2"}]}
+                                  window.test = {"suite_id":"$suiteName","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test1","id":"com.gojuno.example1TestClass.test1","duration_millis":1234,"status":"passed","stacktrace":"","logcat_path":"../../../com.gojuno.example1.TestClass/test1.logcat","deviceId":"device1","deviceModel":"model1","properties":{},"file_paths":["../../../com.gojuno.example1.TestClass.test1/file1","../../../com.gojuno.example1.TestClass.test1/file2"],"screenshots":[{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot1","title":"screenshot1"},{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot2","title":"screenshot2"}]}
                                   // window.mainData / window.suite / window.test={ json }
                                 </script>
                               </head>
@@ -176,7 +180,9 @@ class HtmlReportSpec : Spek({
         }
 
         it("creates html for 2nd test") {
-            assertThat(File(File(File(File(outputDir, "suites"), "0"), "device1"), "com.gojuno.example1TestClasstest2.html").readText().removeEmptyLines()).isEqualTo(
+            val suiteName = adbDevice1.id
+            val file = File(File(File(File(outputDir, "suites"), suiteName), "device1"),"com.gojuno.example1TestClass.test2.html")
+            assertThat(file.readNormalized()).isEqualTo(
                     """
                             <!doctype html>
                             <html lang="en">
@@ -186,7 +192,7 @@ class HtmlReportSpec : Spek({
                                 <title>Composer</title>
                                 <link href="../../../app.min.css" rel="stylesheet">
                                 <script>
-                                  window.test = {"suite_id":"0","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test2","id":"com.gojuno.example1TestClasstest2","duration_millis":1234,"status":"failed","stacktrace":"abc","logcat_path":"../../../com.gojuno.example1.TestClass/test2.logcat","deviceId":"device1","deviceModel":"model1","properties":{},"file_paths":["../../../com.gojuno.example1.TestClass.test2/file1","../../../com.gojuno.example1.TestClass.test2/file2"],"screenshots":[{"path":"../../../com.gojuno.example1.TestClass.test2/screenshot1","title":"screenshot1"},{"path":"../../../com.gojuno.example1.TestClass.test2/screenshot2","title":"screenshot2"}]}
+                                  window.test = {"suite_id":"$suiteName","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test2","id":"com.gojuno.example1TestClass.test2","duration_millis":1234,"status":"failed","stacktrace":"abc","logcat_path":"../../../com.gojuno.example1.TestClass/test2.logcat","deviceId":"device1","deviceModel":"model1","properties":{},"file_paths":["../../../com.gojuno.example1.TestClass.test2/file1","../../../com.gojuno.example1.TestClass.test2/file2"],"screenshots":[{"path":"../../../com.gojuno.example1.TestClass.test2/screenshot1","title":"screenshot1"},{"path":"../../../com.gojuno.example1.TestClass.test2/screenshot2","title":"screenshot2"}]}
                                   // window.mainData / window.suite / window.test={ json }
                                 </script>
                               </head>
@@ -268,3 +274,14 @@ class HtmlReportSpec : Spek({
         }
     }
 })
+
+
+fun File.readNormalized(): String = this
+    .readText()
+    .removeEmptyLines()
+    .replace("\\\\", "/")
+    .replace("\\", "/")
+    .removeEmptyLines()
+
+
+fun String.removeEmptyLines() = lines().filter { it.trim() != "" }.joinToString(separator = "\n") { it }
