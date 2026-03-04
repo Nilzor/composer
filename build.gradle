@@ -8,13 +8,12 @@ buildscript {
     repositories {
         mavenLocal()
         jcenter()
+        gradlePluginPortal()
+        mavenCentral()
     }
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin"
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.13.0'
-        classpath "org.junit.platform:junit-platform-gradle-plugin:$versions.junitPlatform"
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     }
 }
 
@@ -26,8 +25,6 @@ allprojects {
             url  "https://jitpack.io"
         }
     }
-
-    apply plugin: 'com.github.ben-manes.versions'
 }
 
 def gitTag() {

@@ -7,7 +7,7 @@ ext.versions = [
         apacheCommonsIo  : '2.5',
         apacheCommonsLang: '3.5',
         gson             : '2.8.0',
-        dexParser        : '1.1.0',
+        dexParser        : '2.3.4',
 
         junit            : '4.12',
         junitPlatform    : '1.0.0-M4',
@@ -21,7 +21,7 @@ ext.libraries = [
         kotlinReflect          : "org.jetbrains.kotlin:kotlin-reflect:$versions.kotlin",
 
         rxJava                 : "io.reactivex:rxjava:$versions.rxJava",
-        jCommander             : "com.beust:jcommander:$versions.jCommander",
+        jCommander             : "com.github.cbeust:jcommander:$versions.jCommander",
         commanderOs            : "com.github.Nilzor.commander:os:$versions.commander",
         commanderAndroid       : "com.github.Nilzor.commander:android:$versions.commander",
         apacheCommonsIo        : "commons-io:commons-io:$versions.apacheCommonsIo",

@@ -1,31 +1,29 @@
 apply plugin: 'kotlin'
 apply plugin: 'application'
-apply plugin: 'org.junit.platform.gradle.plugin'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
 
 mainClassName = 'com.gojuno.composer.MainKt'
 
 // See dependencies.gradle
 dependencies {
-    compile libraries.kotlinStd
-    compile libraries.rxJava
-    compile libraries.jCommander
-    compile libraries.commanderOs
-    compile libraries.commanderAndroid
-    compile libraries.apacheCommonsIo
-    compile libraries.apacheCommonsLang
-    compile libraries.gson
-    compile libraries.dexParser
+    implementation libraries.kotlinStd
+    implementation libraries.rxJava
+    implementation libraries.jCommander
+    implementation libraries.commanderOs
+    implementation libraries.commanderAndroid
+    implementation libraries.apacheCommonsIo
+    implementation libraries.apacheCommonsLang
+    implementation libraries.gson
+    implementation libraries.dexParser
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
 dependencies {
-    testCompile libraries.spek
-    testCompile libraries.junitPlatformRunner
-    testCompile libraries.spekJunitPlatformEngine
-    testCompile libraries.assertJ
+    testImplementation libraries.spek
+    testImplementation libraries.junitPlatformRunner
+    testImplementation libraries.spekJunitPlatformEngine
+    testImplementation libraries.assertJ
 }
 
 jar {
@@ -41,13 +39,9 @@ jar {
     }
 }
 
-junitPlatform {
-    platformVersion = versions.junitPlatform
-
-    filters {
-        engines {
-            include 'spek'
-        }
+test {
+    useJUnitPlatform {
+        includeEngines 'spek'
     }
 }
 
@@ -66,8 +60,6 @@ task validatePublishing {
         validateTagAndVersion()
     }
 }
-
-bintrayUpload.dependsOn validatePublishing
 
 def pomConfig = {
     licenses {
