@@ -18,73 +18,71 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
 
 class HtmlReportSpec : Spek({
+    val outputDir by memoized { Files.newTemporaryFolder() }
 
-    context("writeHtmlReport") {
+    val adbDevice1 = AdbDevice(
+        id = "device1",
+        online = true,
+        model = "model1"
+    )
 
-        val outputDir by memoized { Files.newTemporaryFolder() }
-
-        val adbDevice1 = AdbDevice(
-                id = "device1",
-                online = true,
-                model = "model1"
-        )
-
-        val suites by memoized {
-            listOf(
-                    Suite(
-                            testPackage = "com.gojuno.example1",
-                            devices = listOf(
-                                Device(
-                                    id = "device1",
-                                    logcat = File(outputDir, "device1.logcat"),
-                                    instrumentationOutput = File(outputDir, "device1.instrumentation"),
-                                    model = "model1")
-                            ),
-                            tests = listOf(
-                                    AdbDeviceTest(
-                                            adbDevice = adbDevice1,
-                                            className = "com.gojuno.example1.TestClass",
-                                            testName = "test1",
-                                            durationNanos = MILLISECONDS.toNanos(1234),
-                                            status = AdbDeviceTest.Status.Passed,
-                                            logcat = File(File(outputDir, "com.gojuno.example1.TestClass"), "test1.logcat"),
-                                            files = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "file1"), File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "file2")),
-                                            screenshots = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "screenshot1"), File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "screenshot2"))
-                                    ),
-                                    AdbDeviceTest(
-                                            adbDevice = adbDevice1,
-                                            className = "com.gojuno.example1.TestClass",
-                                            testName = "test2",
-                                            durationNanos = MILLISECONDS.toNanos(1234),
-                                            status = AdbDeviceTest.Status.Failed(stacktrace = "abc"),
-                                            logcat = File(File(outputDir, "com.gojuno.example1.TestClass"), "test2.logcat"),
-                                            files = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "file1"), File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "file2")),
-                                            screenshots = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "screenshot1"), File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "screenshot2"))
-                                    )
-                            ),
-                            passedCount = 2,
-                            ignoredCount = 0,
-                            failedCount = 1,
-                            durationNanos = MILLISECONDS.toNanos(1234 * 2),
-                            timestampMillis = 1805
+    val suites by memoized {
+        listOf(
+            Suite(
+                testPackage = "com.gojuno.example1",
+                devices = listOf(
+                    Device(
+                        id = "device1",
+                        logcat = File(outputDir, "device1.logcat"),
+                        instrumentationOutput = File(outputDir, "device1.instrumentation"),
+                        model = "model1")
+                ),
+                tests = listOf(
+                    AdbDeviceTest(
+                        adbDevice = adbDevice1,
+                        className = "com.gojuno.example1.TestClass",
+                        testName = "test1",
+                        durationNanos = MILLISECONDS.toNanos(1234),
+                        status = AdbDeviceTest.Status.Passed,
+                        logcat = File(File(outputDir, "com.gojuno.example1.TestClass"), "test1.logcat"),
+                        files = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "file1"), File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "file2")),
+                        screenshots = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "screenshot1"), File(File(outputDir, "com.gojuno.example1.TestClass.test1"), "screenshot2"))
+                    ),
+                    AdbDeviceTest(
+                        adbDevice = adbDevice1,
+                        className = "com.gojuno.example1.TestClass",
+                        testName = "test2",
+                        durationNanos = MILLISECONDS.toNanos(1234),
+                        status = AdbDeviceTest.Status.Failed(stacktrace = "abc"),
+                        logcat = File(File(outputDir, "com.gojuno.example1.TestClass"), "test2.logcat"),
+                        files = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "file1"), File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "file2")),
+                        screenshots = listOf(File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "screenshot1"), File(File(outputDir, "com.gojuno.example1.TestClass.test2"), "screenshot2"))
                     )
+                ),
+                passedCount = 2,
+                ignoredCount = 0,
+                failedCount = 1,
+                durationNanos = MILLISECONDS.toNanos(1234 * 2),
+                timestampMillis = 1805
             )
+        )
+    }
+
+    val subscriber by memoized { TestSubscriber<Unit>() }
+
+    val date by memoized { Date(1496848677000) }
+
+    fun File.deleteOnExitRecursively() {
+        when (isDirectory) {
+            false -> deleteOnExit()
+            true -> listFiles()?.forEach { inner -> inner.deleteOnExitRecursively() }
         }
+    }
 
-        val subscriber by memoized { TestSubscriber<Unit>() }
-
-        fun File.deleteOnExitRecursively() {
-            when (isDirectory) {
-                false -> deleteOnExit()
-                true -> listFiles()?.forEach { inner -> inner.deleteOnExitRecursively() }
-            }
-        }
-
-        val date by memoized { Date(1496848677000) }
-
+    context("writeHtmlReport, no extenal log link") {
         perform {
-            val gson = Gson() // todo pretty print
-            writeHtmlReport(gson, suites, outputDir, date).subscribe(subscriber)
+            val gson = Gson()
+            writeHtmlReport(gson, suites, outputDir, date, externalLogBaseUrl = null).subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -200,6 +198,42 @@ class HtmlReportSpec : Spek({
                                 <div id="root"></div>
                                 <script type="text/javascript" src="../../../app.min.js"></script>
 
+                                <div class="copy content">Generated with&nbsp;❤️&nbsp;&nbsp;by Juno at 15:17:57 UTC, Jun 7 2017</div>
+                              </body>
+                            </html>
+                            """.removeEmptyLines().trimIndent()
+            )
+        }
+    }
+
+    context("writeHtmlReport, with extenal log link") {
+        perform {
+            val gson = Gson()
+            writeHtmlReport(gson, suites, outputDir, date, externalLogBaseUrl = "http://foo").subscribe(subscriber)
+            subscriber.awaitTerminalEvent(5, SECONDS)
+            outputDir.deleteOnExitRecursively()
+        }
+        it("creates html for 1st test with log link") {
+            val suiteName = adbDevice1.id // Default suite name changed to device name for clarity when only one suite is run
+            val file = File(File(File(File(outputDir, "suites"), suiteName), "device1"), "com.gojuno.example1TestClass.test1.html")
+            assertThat(file.readNormalized()).isEqualTo(
+                """
+                            <!doctype html>
+                            <html lang="en">
+                              <head>
+                                <meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1">
+                                <meta charset="utf-8">
+                                <title>Composer</title>
+                                <link href="../../../app.min.css" rel="stylesheet">
+                                <script>
+                                  window.test = {"suite_id":"$suiteName","package_name":"com.gojuno.example1","class_name":"TestClass","name":"test1","id":"com.gojuno.example1TestClass.test1","duration_millis":1234,"status":"passed","stacktrace":"","logcat_path":"../../../com.gojuno.example1.TestClass/test1.logcat","deviceId":"device1","deviceModel":"model1","properties":{},"file_paths":["../../../com.gojuno.example1.TestClass.test1/file1","../../../com.gojuno.example1.TestClass.test1/file2"],"screenshots":[{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot1","title":"screenshot1"},{"path":"../../../com.gojuno.example1.TestClass.test1/screenshot2","title":"screenshot2"}]}
+                                  // window.mainData / window.suite / window.test={ json }
+                                </script>
+                              </head>
+                              <body>
+                                <div id="root"></div>
+                                <script type="text/javascript" src="../../../app.min.js"></script>
+                                <div class='title-common'><a href='http://foo/html-report/suites/device1/device1/com.gojuno.example1TestClass.test1.html'>External log</a></div>
                                 <div class="copy content">Generated with&nbsp;❤️&nbsp;&nbsp;by Juno at 15:17:57 UTC, Jun 7 2017</div>
                               </body>
                             </html>

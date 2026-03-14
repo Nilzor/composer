@@ -17,7 +17,7 @@ import java.util.*
  * - suites/suiteId.json
  * - suites/deviceId/testId.json
  */
-fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date): Completable = Completable.fromCallable {
+fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date, externalLogBaseUrl: String?): Completable = Completable.fromCallable {
     outputDir.mkdirs()
 
     val htmlIndexJson = gson.toJson(
@@ -51,6 +51,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
             .replace("\${data_json}", "window.mainData = $htmlIndexJson")
             .replace("\${date}", formattedDate)
             .replace("\${log}", "")
+            .replace("\${externalLogLink}", "")
             .replace("\${stacktrace}", "")
     )
 
@@ -66,6 +67,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                 .replace("\${data_json}", "window.suite = $suiteJson")
                 .replace("\${date}", formattedDate)
                 .replace("\${log}", "")
+                .replace("\${externalLogLink}", "")
                 .replace("\${stacktrace}", "")
         )
 
@@ -78,16 +80,24 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                     val testHtmlFile = File(testDir, "${htmlTest.id}.html")
                     val stackTraceHtml = generateStackTrace(test.status)
 
+                    // External log link (optional)
+                    val externalLogLinkHtml: String = if (externalLogBaseUrl == null) "" else {
+                        val externalLogLink = ("$externalLogBaseUrl/html-report/suites/" + testDir.relativePathTo(suitesDir) + "/" + testHtmlFile.name.toString()).replace("\\", "/")
+                        "<div class='title-common'><a href='$externalLogLink'>External log</a></div>"
+                    }
+
                     testHtmlFile.writeText(indexHtml
                             .replace("\${relative_path}", testHtmlFile.relativePathToHtmlDir())
                             .replace("\${data_json}", "window.test = $testJson")
                             .replace("\${date}", formattedDate)
+                            .replace("\${externalLogLink}", externalLogLinkHtml)
                             .replace("\${stacktrace}", stackTraceHtml)
                             .replace("\${log}", generateLogcatHtml(test.logcat))
                     )
                 }
     }
 }
+
 
 fun generateStackTrace(status: AdbDeviceTest.Status): String {
     return when (status) {

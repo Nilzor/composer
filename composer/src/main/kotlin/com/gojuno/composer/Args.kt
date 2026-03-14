@@ -136,6 +136,15 @@ data class Args(
         var deviceAliases: List<String> = emptyList(),
 
         @Parameter(
+                names = arrayOf("--external-log-base-url"),
+                required = false,
+                arity = 1,
+                description = "Link to external log. Template variables: [SimpleClassName], [FullClassName], [MethodName]",
+                order = 8
+        )
+        var externalLogBaseUrl: String? = null,
+
+        @Parameter(
                 names = arrayOf("--screenshot-folder"),
                 required = false,
                 arity = 1,

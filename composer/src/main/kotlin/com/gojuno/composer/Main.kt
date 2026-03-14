@@ -200,7 +200,7 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
             .flatMap { suites ->
                 log("Generating HTML report...")
                 val htmlReportStartTime = System.nanoTime()
-                writeHtmlReport(gson, suites, File(args.outputDirectory, "html-report"), Date())
+                writeHtmlReport(gson, suites, File(args.outputDirectory, "html-report"), Date(), null)
                         .doOnCompleted { log("HTML report generated, took ${(System.nanoTime() - htmlReportStartTime).nanosToHumanReadableTime()}.") }
                         .andThen(Observable.just(suites))
             }
