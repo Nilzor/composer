@@ -138,11 +138,10 @@ data class Args(
         @Parameter(
                 names = arrayOf("--external-log-url"),
                 required = false,
-                arity = 1,
-                description = "Link to external log. Template variables: [SimpleClassName], [FullClassName], [TestName]",
+                description = "Link to external log. Template variables: [SimpleClassName], [FullClassName], [TestName], [SuiteName]",
                 order = 8
         )
-        var externalLogUrlTemplate: String? = null,
+        var externalLogUrlTemplate: String = "",
 
         @Parameter(
                 names = arrayOf("--screenshot-folder"),

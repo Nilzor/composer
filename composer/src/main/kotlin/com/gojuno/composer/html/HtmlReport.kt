@@ -1,6 +1,8 @@
 package com.gojuno.composer.html
 
+import com.gojuno.commander.os.log
 import com.gojuno.composer.AdbDeviceTest
+import com.gojuno.composer.Args
 import com.gojuno.composer.Suite
 import com.gojuno.composer.pathSafeId
 import com.google.gson.Gson
@@ -17,7 +19,7 @@ import java.util.*
  * - suites/suiteId.json
  * - suites/deviceId/testId.json
  */
-fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date, externalLogUrlTemplate: String?): Completable = Completable.fromCallable {
+fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date, args: Args): Completable = Completable.fromCallable {
     outputDir.mkdirs()
 
     val htmlIndexJson = gson.toJson(
@@ -81,13 +83,17 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                     val stackTraceHtml = generateStackTrace(test.status)
 
                     // External log link (optional)
-                    val externalLogLinkHtml: String = if (externalLogUrlTemplate == null) "" else {
+                    val logUrl = args.externalLogUrlTemplate
+                    val externalLogLinkHtml: String = if (logUrl.isEmpty()) "" else {
                         val simpleClassName = test.className.split(".").last()
-                        val externalLogLink = externalLogUrlTemplate
+                        val deviceName = args.deviceAliasMap[test.adbDevice.id] ?: ""
+                        val externalLogLink = logUrl
                             .replace("[SimpleClassName]", simpleClassName)
                             .replace("[FullClassName]", test.className)
                             .replace("[TestName]", test.testName)
-                            //("$externalLogUrlTemplate/html-report/suites/" + testDir.relativePathTo(suitesDir) + "/" + testHtmlFile.name.toString()).replace("\\", "/")
+                            .replace("[SuiteName]", suiteId)
+                            .replace("[DeviceId]", test.adbDevice.id)
+                            .replace("[DeviceName]", deviceName)
                         "<div class='title-common'><a href='$externalLogLink'>External log</a></div>"
                     }
 

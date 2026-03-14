@@ -1,10 +1,7 @@
 package com.gojuno.composer.html
 
 import com.gojuno.commander.android.AdbDevice
-import com.gojuno.composer.AdbDeviceTest
-import com.gojuno.composer.Device
-import com.gojuno.composer.Suite
-import com.gojuno.composer.perform
+import com.gojuno.composer.*
 import com.google.gson.Gson
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.util.Files
@@ -82,7 +79,7 @@ class HtmlReportSpec : Spek({
     context("writeHtmlReport, no extenal log link") {
         perform {
             val gson = Gson()
-            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = "").subscribe(subscriber)
+            writeHtmlReport(gson, suites, outputDir, date, args = Args()).subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -209,7 +206,11 @@ class HtmlReportSpec : Spek({
     context("writeHtmlReport, with extenal log link") {
         perform {
             val gson = Gson()
-            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = "http://foo/[SimpleClassName]/[TestName]").subscribe(subscriber)
+            val args = Args(
+                externalLogUrlTemplate = "http://foo/[DeviceName]/[SimpleClassName]/[TestName]",
+                deviceAliases = listOf("device1=TheFastDevice")
+            )
+            writeHtmlReport(gson, suites, outputDir, date, args).subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -233,7 +234,7 @@ class HtmlReportSpec : Spek({
                               <body>
                                 <div id="root"></div>
                                 <script type="text/javascript" src="../../../app.min.js"></script>
-                                <div class='title-common'><a href='http://foo/TestClass/test1'>External log</a></div>
+                                <div class='title-common'><a href='http://foo/TheFastDevice/TestClass/test1'>External log</a></div>
                                 <div class="copy content">Generated with&nbsp;❤️&nbsp;&nbsp;by Juno at 15:17:57 UTC, Jun 7 2017</div>
                               </body>
                             </html>
