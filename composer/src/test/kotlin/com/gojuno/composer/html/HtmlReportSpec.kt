@@ -234,7 +234,7 @@ class HtmlReportSpec : Spek({
                               <body>
                                 <div id="root"></div>
                                 <script type="text/javascript" src="../../../app.min.js"></script>
-                                <div class='title-common'><a href='http://foo/TheFastDevice/TestClass/test1'>External log</a></div>
+                                <div class='content title-common'><a href='http://foo/TheFastDevice/TestClass/test1'>External log</a></div>
                                 <div class="copy content">Generated with&nbsp;❤️&nbsp;&nbsp;by Juno at 15:17:57 UTC, Jun 7 2017</div>
                               </body>
                             </html>

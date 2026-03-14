@@ -94,7 +94,7 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                             .replace("[SuiteName]", suiteId)
                             .replace("[DeviceId]", test.adbDevice.id)
                             .replace("[DeviceName]", deviceName)
-                        "<div class='title-common'><a href='$externalLogLink'>External log</a></div>"
+                        "<div class='content title-common'><a href='$externalLogLink'>External log</a></div>"
                     }
 
                     testHtmlFile.writeText(indexHtml
