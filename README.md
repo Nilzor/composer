@@ -210,6 +210,11 @@ npm install
 npm build
 ```
 
+#### Publishing
+
+Run `shadowJar`, the file `composer-all.jar` will be created in `composer/build/libs`
+This differs from `jar` in that the relevant kotlin STD-lib files will be included.
+
 ## License
 
 ```

@@ -82,7 +82,7 @@ class HtmlReportSpec : Spek({
     context("writeHtmlReport, no extenal log link") {
         perform {
             val gson = Gson()
-            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = null).subscribe(subscriber)
+            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = "").subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
