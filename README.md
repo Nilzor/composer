@@ -145,7 +145,8 @@ Composer shipped as jar, to run it you need JVM 1.8+: `java -jar composer-latest
   * Example: `--extra-apks path/to/apk/first.apk path/to/apk/second.apk`
 * `-screenshot-folder`
   * Device folder from where to pull test screenshots. Default: /storage/emulated/0/app_spoon-screenshots    
-  
+* `--external-log-url`
+  * Hyperlink template to external log. Template variables that will be replaced: [SimpleClassName], [FullClassName], [TestName], [SuiteName], [DeviceId], [DeviceName] (based on aliases from other param)
 ##### Example
 
 Simplest :
