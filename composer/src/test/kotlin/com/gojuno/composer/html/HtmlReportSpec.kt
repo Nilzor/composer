@@ -82,7 +82,7 @@ class HtmlReportSpec : Spek({
     context("writeHtmlReport, no extenal log link") {
         perform {
             val gson = Gson()
-            writeHtmlReport(gson, suites, outputDir, date, externalLogBaseUrl = null).subscribe(subscriber)
+            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = null).subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -209,7 +209,7 @@ class HtmlReportSpec : Spek({
     context("writeHtmlReport, with extenal log link") {
         perform {
             val gson = Gson()
-            writeHtmlReport(gson, suites, outputDir, date, externalLogBaseUrl = "http://foo").subscribe(subscriber)
+            writeHtmlReport(gson, suites, outputDir, date, externalLogUrlTemplate = "http://foo/[SimpleClassName]/[TestName]").subscribe(subscriber)
             subscriber.awaitTerminalEvent(5, SECONDS)
             outputDir.deleteOnExitRecursively()
         }
@@ -233,7 +233,7 @@ class HtmlReportSpec : Spek({
                               <body>
                                 <div id="root"></div>
                                 <script type="text/javascript" src="../../../app.min.js"></script>
-                                <div class='title-common'><a href='http://foo/html-report/suites/device1/device1/com.gojuno.example1TestClass.test1.html'>External log</a></div>
+                                <div class='title-common'><a href='http://foo/TestClass/test1'>External log</a></div>
                                 <div class="copy content">Generated with&nbsp;❤️&nbsp;&nbsp;by Juno at 15:17:57 UTC, Jun 7 2017</div>
                               </body>
                             </html>

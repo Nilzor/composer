@@ -17,7 +17,7 @@ import java.util.*
  * - suites/suiteId.json
  * - suites/deviceId/testId.json
  */
-fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date, externalLogBaseUrl: String?): Completable = Completable.fromCallable {
+fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date, externalLogUrlTemplate: String?): Completable = Completable.fromCallable {
     outputDir.mkdirs()
 
     val htmlIndexJson = gson.toJson(
@@ -81,8 +81,13 @@ fun writeHtmlReport(gson: Gson, suites: List<Suite>, outputDir: File, date: Date
                     val stackTraceHtml = generateStackTrace(test.status)
 
                     // External log link (optional)
-                    val externalLogLinkHtml: String = if (externalLogBaseUrl == null) "" else {
-                        val externalLogLink = ("$externalLogBaseUrl/html-report/suites/" + testDir.relativePathTo(suitesDir) + "/" + testHtmlFile.name.toString()).replace("\\", "/")
+                    val externalLogLinkHtml: String = if (externalLogUrlTemplate == null) "" else {
+                        val simpleClassName = test.className.split(".").last()
+                        val externalLogLink = externalLogUrlTemplate
+                            .replace("[SimpleClassName]", simpleClassName)
+                            .replace("[FullClassName]", test.className)
+                            .replace("[TestName]", test.testName)
+                            //("$externalLogUrlTemplate/html-report/suites/" + testDir.relativePathTo(suitesDir) + "/" + testHtmlFile.name.toString()).replace("\\", "/")
                         "<div class='title-common'><a href='$externalLogLink'>External log</a></div>"
                     }
 
