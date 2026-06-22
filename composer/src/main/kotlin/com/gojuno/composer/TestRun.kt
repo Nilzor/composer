@@ -163,6 +163,7 @@ fun AdbDevice.runTests(
                         "${testRun.failedCount} failed, took " +
                         "${testRun.durationNanos.nanosToHumanReadableTime()}."
                 )
+                if (crashed) { Thread.sleep(3000) } // Give ADB time to process crash output before killing
                 log("Stopping ADB logcat listener - PID ${adbProcess.pid()}")
                 adbProcess.destroy()
             }
