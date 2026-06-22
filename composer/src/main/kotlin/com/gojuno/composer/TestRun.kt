@@ -71,6 +71,7 @@ fun AdbDevice.runTests(
     adbDevice.log("Will pull screenshots from device folder $screenshotFolderOnDevice")
     val collectedTests = mutableListOf<Pair<InstrumentationTest, PulledFiles>>()
     var lastEntry: InstrumentationEntry? = null
+    var crashed = false
     @Suppress("destructure")
     val runningTests = runTests
             .ofType(Notification.Start::class.java)
@@ -98,7 +99,7 @@ fun AdbDevice.runTests(
             }
             .doOnNext { collectedTests.add(it) }
             .toList()
-            .onErrorReturn { error -> buildPartialResults(collectedTests, lastEntry, error) }
+            .onErrorReturn { error -> crashed = true; buildPartialResults(collectedTests, lastEntry, error) }
 
     val adbDeviceTestRun = Observable
             .zip(
@@ -157,8 +158,9 @@ fun AdbDevice.runTests(
             }
             .doOnSubscribe { adbDevice.log("Starting tests...") }
             .doOnNext { (testRun, adbProcess) ->
+                val outcome = if (crashed) "CRASHED" else "finished"
                 adbDevice.log(
-                        "Test run finished, " +
+                        "Test run $outcome, " +
                         "${testRun.passedCount} passed, " +
                         "${testRun.failedCount} failed, took " +
                         "${testRun.durationNanos.nanosToHumanReadableTime()}."
