@@ -69,10 +69,13 @@ fun AdbDevice.runTests(
     ).share()
 
     adbDevice.log("Will pull screenshots from device folder $screenshotFolderOnDevice")
+    val collectedTests = mutableListOf<Pair<InstrumentationTest, PulledFiles>>()
+    var lastEntry: InstrumentationEntry? = null
     @Suppress("destructure")
     val runningTests = runTests
             .ofType(Notification.Start::class.java)
             .flatMap { readInstrumentationOutput(it.output) }
+            .doOnNext { entry -> lastEntry = entry }
             .asTests()
             .doOnNext { test ->
                 val status = when (test.status) {
@@ -93,7 +96,9 @@ fun AdbDevice.runTests(
                         .subscribeOn(Schedulers.io())
                         .map { pulledFiles -> test to pulledFiles }
             }
+            .doOnNext { collectedTests.add(it) }
             .toList()
+            .onErrorReturn { error -> buildPartialResults(collectedTests, lastEntry, error) }
 
     val adbDeviceTestRun = Observable
             .zip(
@@ -276,6 +281,28 @@ private fun clearLogcat(adbDevice: AdbDevice) =
         .doOnError { adbDevice.log("Error attempting to clear logcat for device") }
         .take(1)
         .doOnCompleted { adbDevice.log("Logcat cleared") }
+
+/**
+ * Salvages partial results when an instrumentation process crashes mid-run, appending a synthetic
+ * failed entry for the in-flight test identified by [lastEntry]. Recovering here prevents the error
+ * from reaching [Observable.zip] in Main, which would otherwise terminate all other device runs.
+ */
+private fun buildPartialResults(
+        collectedTests: List<Pair<InstrumentationTest, PulledFiles>>,
+        lastEntry: InstrumentationEntry?,
+        error: Throwable
+): List<Pair<InstrumentationTest, PulledFiles>> {
+    if (lastEntry == null) return collectedTests
+    val syntheticTest = InstrumentationTest(
+            index = lastEntry.current,
+            total = lastEntry.numTests,
+            className = lastEntry.clazz,
+            testName = lastEntry.test,
+            status = InstrumentationTest.Status.Failed(error.message ?: "Process crashed"),
+            durationNanos = System.nanoTime() - lastEntry.timestampNanos
+    )
+    return collectedTests + (syntheticTest to PulledFiles(emptyList(), emptyList()))
+}
 
 private fun logcatFileForDevice(logsDir: File) = File(logsDir, "full.logcat")
 
