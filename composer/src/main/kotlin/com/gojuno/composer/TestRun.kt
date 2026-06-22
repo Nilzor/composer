@@ -161,7 +161,7 @@ fun AdbDevice.runTests(
                 log("Stopping ADB logcat listener - PID ${adbProcess.pid()}")
                 adbProcess.destroy()
             }
-            .map { (testRun, _) -> testRun }
+            .map { (testRun: AdbDeviceTestRun, _: Process) -> testRun }
             .doOnError {
                 adbDevice.log("Error during tests run: $it")
                 try {
