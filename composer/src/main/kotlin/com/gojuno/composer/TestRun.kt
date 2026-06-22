@@ -144,12 +144,10 @@ fun AdbDevice.runTests(
     // There will still be a delay so there is a possibility that we might not get test-specific log lines
     // stored to disk. Solution for that would be to wait explicitly for log lines from TestRunner before
     // killing the log listener and completing the test run
-    var adbLogcatProcess: Process? = null
     val clearAndSaveLogcat = clearLogcat(adbDevice)
         .flatMap { saveLogcat(adbDevice, logsDir) }
         .doOnNext {
             log("Logcat parsing process started with PID ${it.pid()}")
-            adbLogcatProcess = it
         }
 
     return Observable
@@ -169,15 +167,6 @@ fun AdbDevice.runTests(
                 adbProcess.destroy()
             }
             .map { (testRun: AdbDeviceTestRun, _: Process) -> testRun }
-            .doOnError {
-                adbDevice.log("Error during tests run: $it")
-                try {
-                    adbLogcatProcess?.let { adbProc ->
-                        log("Killing ADB process with PID ${adbProc.pid()}")
-                        adbProc.destroy()
-                    } ?: log("No ADB process to kill")
-                } catch (ex: Exception) { }
-            }
             .toSingle()
 }
 
