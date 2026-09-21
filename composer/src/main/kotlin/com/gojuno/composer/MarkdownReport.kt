@@ -71,21 +71,25 @@ private fun buildMarkdown(results: List<DeviceTestResult>, externalLogUrlTemplat
     sb.append("# Test Results\n")
     sb.append("\n")
 
-    buildFailuresSection(results, sb)
+    buildFailuresSection(results, sb, externalLogUrlTemplate)
     buildSummaryTable(results, externalLogUrlTemplate, sb)
 
     return sb.toString()
 }
 
+private fun buildExternalLogUrl(template: String, fullClassName: String, simpleClassName: String, testName: String, deviceName: String = ""): String =
+    template
+        .replace("[FullClassName]", fullClassName)
+        .replace("[SimpleClassName]", simpleClassName)
+        .replace("[TestName]", testName)
+        .replace("[DeviceName]", deviceName)
+
 private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTemplate: String, sb: StringBuilder) {
     sb.append("## Summary\n")
     sb.append("\n")
 
-    val hasDatadog = externalLogUrlTemplate.isNotEmpty()
-    val header = if (hasDatadog) "| Class | Test | Succeeded | Log | Status |\n" else "| Class | Test | Succeeded | Status |\n"
-    val divider = if (hasDatadog) "|---|---|---|---|---|\n" else "|---|---|---|---|\n"
-    sb.append(header)
-    sb.append(divider)
+    sb.append("| Class | Test | Succeeded | Status |\n")
+    sb.append("|---|---|---|---|\n")
 
     val grouped = results
         .filter { it.status != MarkdownTestStatus.SKIPPED }
@@ -103,21 +107,18 @@ private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTem
             passed == 0 -> "❌"
             else -> "⚠️"
         }
-        val logCell = if (hasDatadog) {
-            val url = externalLogUrlTemplate
-                .replace("[FullClassName]", fullClassName)
-                .replace("[SimpleClassName]", simpleClassName)
-                .replace("[TestName]", testName)
-            " [Log]($url) |"
-        } else ""
+        val testCell = if (externalLogUrlTemplate.isNotEmpty()) {
+            val url = buildExternalLogUrl(externalLogUrlTemplate, fullClassName, simpleClassName, testName)
+            "[$testName]($url)"
+        } else testName
 
-        sb.append("| $simpleClassName | $testName | $passed/$total |$logCell $statusSymbol |\n")
+        sb.append("| $simpleClassName | $testCell | $passed/$total | $statusSymbol |\n")
     }
 
     sb.append("\n")
 }
 
-private fun buildFailuresSection(results: List<DeviceTestResult>, sb: StringBuilder) {
+private fun buildFailuresSection(results: List<DeviceTestResult>, sb: StringBuilder, externalLogUrlTemplate: String = "") {
     val failures = results.filter { it.status == MarkdownTestStatus.FAILED }
     if (failures.isEmpty()) return
 
@@ -127,7 +128,11 @@ private fun buildFailuresSection(results: List<DeviceTestResult>, sb: StringBuil
     sb.append("<tr><th>Device</th><th>Class</th><th>Test</th></tr>\n")
     failures.forEach { result ->
         val simpleClassName = result.className.substringAfterLast('.')
-        sb.append("<tr><td>${result.deviceName}</td><td>$simpleClassName</td><td>${result.testName}</td></tr>\n")
+        val testCell = if (externalLogUrlTemplate.isNotEmpty()) {
+            val url = buildExternalLogUrl(externalLogUrlTemplate, result.className, simpleClassName, result.testName, result.deviceName)
+            "<a href=\"$url\">${result.testName}</a>"
+        } else result.testName
+        sb.append("<tr><td>${result.deviceName}</td><td>$simpleClassName</td><td>$testCell</td></tr>\n")
         if (result.stacktrace.isNotEmpty()) {
             sb.append("<tr><td colspan=\"3\"><details><summary>Stacktrace</summary><pre>")
             sb.append(result.stacktrace.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
