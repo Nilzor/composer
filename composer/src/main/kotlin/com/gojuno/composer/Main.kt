@@ -29,9 +29,19 @@ fun exit(exit: Exit) {
 }
 
 fun main(rawArgs: Array<String>) {
-    val startTime = System.nanoTime()
-
     val args = parseArgs(rawArgs)
+
+    if (args.markdownReportFromXml.isNotEmpty()) {
+        val xmlDir = File(args.markdownReportFromXml)
+        val outputFile = File(args.outputDirectory, "report.md")
+        log("Generating Markdown report from ${xmlDir.absolutePath}...")
+        generateMarkdownReport(xmlDir, outputFile, args.externalLogUrlTemplate, args.deviceAliasMap)
+        log("Markdown report written to ${outputFile.absolutePath}")
+        exit(Exit.Ok)
+        return
+    }
+
+    val startTime = System.nanoTime()
 
     if (args.verboseOutput) {
         log("$args")
@@ -203,6 +213,13 @@ private fun runAllTests(args: Args, testPackage: TestPackage.Valid, testRunner: 
                 writeHtmlReport(gson, suites, File(args.outputDirectory, "html-report"), Date(), args)
                         .doOnCompleted { log("HTML report generated, took ${(System.nanoTime() - htmlReportStartTime).nanosToHumanReadableTime()}.") }
                         .andThen(Observable.just(suites))
+            }
+            .doOnNext {
+                val xmlDir = File(args.outputDirectory, "junit4-reports")
+                val outputFile = File(args.outputDirectory, "report.md")
+                log("Generating Markdown report...")
+                generateMarkdownReport(xmlDir, outputFile, args.externalLogUrlTemplate, args.deviceAliasMap)
+                log("Markdown report written to ${outputFile.absolutePath}")
             }
             .toBlocking()
             .first()
