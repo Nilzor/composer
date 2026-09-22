@@ -9,6 +9,7 @@ data class DeviceTestResult(
     val className: String,
     val testName: String,
     val status: MarkdownTestStatus,
+    val durationSeconds: Double = 0.0,
     val stacktrace: String = ""
 )
 
@@ -51,15 +52,17 @@ private fun parseJunitXml(file: File, deviceName: String): List<DeviceTestResult
         val failureNodes = tc.getElementsByTagName("failure")
         val skippedNodes = tc.getElementsByTagName("skipped")
 
+        val duration = tc.getAttribute("time").toDoubleOrNull() ?: 0.0
+
         when {
             failureNodes.length > 0 -> {
                 val stacktrace = failureNodes.item(0).textContent?.trim() ?: ""
-                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.FAILED, stacktrace))
+                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.FAILED, duration, stacktrace))
             }
             skippedNodes.length > 0 ->
-                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.SKIPPED))
+                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.SKIPPED, duration))
             else ->
-                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.PASSED))
+                results.add(DeviceTestResult(deviceName, className, testName, MarkdownTestStatus.PASSED, duration))
         }
     }
 
@@ -77,6 +80,11 @@ private fun buildMarkdown(results: List<DeviceTestResult>, externalLogUrlTemplat
     return sb.toString()
 }
 
+private fun formatDuration(seconds: Double): String {
+    val totalSeconds = seconds.toLong()
+    return if (totalSeconds >= 60) "${totalSeconds / 60}m ${totalSeconds % 60}s" else "${Math.round(seconds * 10) / 10.0}s"
+}
+
 private fun buildExternalLogUrl(template: String, fullClassName: String, simpleClassName: String, testName: String, deviceName: String = ""): String =
     template
         .replace("[FullClassName]", fullClassName)
@@ -88,8 +96,8 @@ private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTem
     sb.append("## Summary\n")
     sb.append("\n")
 
-    sb.append("| Class | Test | Succeeded | Status |\n")
-    sb.append("|---|---|---|---|\n")
+    sb.append("| Class | Test | Succeeded | Time | Status |\n")
+    sb.append("|---|---|---|---|---|\n")
 
     val grouped = results
         .filter { it.status != MarkdownTestStatus.SKIPPED }
@@ -112,7 +120,8 @@ private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTem
             "[$testName]($url)"
         } else testName
 
-        sb.append("| $simpleClassName | $testCell | $passed/$total | $statusSymbol |\n")
+        val avgDuration = deviceResults.map { it.durationSeconds }.average()
+        sb.append("| $simpleClassName | $testCell | $passed/$total | ${formatDuration(avgDuration)} | $statusSymbol |\n")
     }
 
     sb.append("\n")
