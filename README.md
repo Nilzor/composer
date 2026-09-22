@@ -147,6 +147,10 @@ Composer shipped as jar, to run it you need JVM 1.8+: `java -jar composer-latest
   * Device folder from where to pull test screenshots. Default: /storage/emulated/0/app_spoon-screenshots    
 * `--external-log-url`
   * Hyperlink template to external log. Template variables that will be replaced: [SimpleClassName], [FullClassName], [TestName], [SuiteName], [DeviceId], [DeviceName] (based on aliases from other param)
+  * Also used in the Markdown report to link test names to external logs
+* `--markdown-report-from-xml`
+  * Path to directory containing JUnit XML reports. When set, generates a Markdown report from existing XML files without running tests. Useful for regenerating the report in CI after the test run.
+  * Example: `--markdown-report-from-xml artifacts/composer-output/junit4-reports --output-directory artifacts/composer-output`
 ##### Example
 
 Simplest :
