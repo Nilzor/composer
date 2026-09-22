@@ -4,6 +4,8 @@ import org.w3c.dom.Element
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
+data class DeviceSummary(val deviceName: String, val passedCount: Int, val nonSkippedCount: Int, val totalDurationSeconds: Double)
+
 data class DeviceTestResult(
     val deviceName: String,
     val className: String,
@@ -16,8 +18,8 @@ data class DeviceTestResult(
 enum class MarkdownTestStatus { PASSED, FAILED, SKIPPED }
 
 fun generateMarkdownReport(xmlDir: File, outputFile: File, externalLogUrlTemplate: String, deviceAliasMap: Map<String, String> = emptyMap()) {
-    val results = parseJunitXmlDir(xmlDir, deviceAliasMap)
-    val markdown = buildMarkdown(results, externalLogUrlTemplate)
+    val (deviceSummaries, results) = parseJunitXmlDir(xmlDir, deviceAliasMap)
+    val markdown = buildMarkdown(deviceSummaries, results, externalLogUrlTemplate)
     outputFile.parentFile?.mkdirs()
     outputFile.writeText(markdown)
 }
@@ -30,17 +32,30 @@ private fun resolveDeviceName(filenameStem: String, deviceAliasMap: Map<String, 
         ?: filenameStem
 }
 
-private fun parseJunitXmlDir(dir: File, deviceAliasMap: Map<String, String>): List<DeviceTestResult> =
+private fun parseJunitXmlDir(dir: File, deviceAliasMap: Map<String, String>): Pair<List<DeviceSummary>, List<DeviceTestResult>> {
+    val summaries = mutableListOf<DeviceSummary>()
+    val results = mutableListOf<DeviceTestResult>()
+
     dir.listFiles { f -> f.extension == "xml" }
         ?.sortedBy { it.name }
-        ?.flatMap { file ->
+        ?.forEach { file ->
             val deviceName = resolveDeviceName(file.nameWithoutExtension, deviceAliasMap)
-            parseJunitXml(file, deviceName)
+            val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
+            val root = doc.documentElement
+            val total = root.getAttribute("tests").toIntOrNull() ?: 0
+            val failures = root.getAttribute("failures").toIntOrNull() ?: 0
+            val skipped = root.getAttribute("skipped").toIntOrNull() ?: 0
+            val nonSkipped = total - skipped
+            val passed = nonSkipped - failures
+            val suiteDuration = root.getAttribute("time").toDoubleOrNull() ?: 0.0
+            summaries.add(DeviceSummary(deviceName, passed, nonSkipped, suiteDuration))
+            results.addAll(parseTestcases(doc, deviceName))
         }
-        ?: emptyList()
 
-private fun parseJunitXml(file: File, deviceName: String): List<DeviceTestResult> {
-    val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
+    return summaries to results
+}
+
+private fun parseTestcases(doc: org.w3c.dom.Document, deviceName: String): List<DeviceTestResult> {
     val testcases = doc.getElementsByTagName("testcase")
     val results = mutableListOf<DeviceTestResult>()
 
@@ -69,15 +84,33 @@ private fun parseJunitXml(file: File, deviceName: String): List<DeviceTestResult
     return results
 }
 
-private fun buildMarkdown(results: List<DeviceTestResult>, externalLogUrlTemplate: String): String {
+private fun buildMarkdown(deviceSummaries: List<DeviceSummary>, results: List<DeviceTestResult>, externalLogUrlTemplate: String): String {
     val sb = StringBuilder()
-    sb.append("# Test Results\n")
+    sb.append("# UI test Results\n")
     sb.append("\n")
 
+    buildDeviceTable(deviceSummaries, sb)
     buildFailuresSection(results, sb, externalLogUrlTemplate)
-    buildSummaryTable(results, externalLogUrlTemplate, sb)
+    buildTestSummary(results, externalLogUrlTemplate, sb)
 
     return sb.toString()
+}
+
+// Summary per device, focusing on passec test count and execution time
+private fun buildDeviceTable(summaries: List<DeviceSummary>, sb: StringBuilder) {
+    sb.append("## By device\n")
+    sb.append("\n")
+    sb.append("| Device | Passed | Time |\n")
+    sb.append("|---|---|---|\n")
+    summaries.forEach {
+        val icon = when {
+            it.passedCount == it.nonSkippedCount -> "✅"
+            it.passedCount == 0 -> "❌"
+            else -> "⚠️"
+        }
+        sb.append("| ${it.deviceName} | $icon ${it.passedCount}/${it.nonSkippedCount} | ${formatDuration(it.totalDurationSeconds)} |\n")
+    }
+    sb.append("\n")
 }
 
 private fun formatDuration(seconds: Double): String {
@@ -92,12 +125,14 @@ private fun buildExternalLogUrl(template: String, fullClassName: String, simpleC
         .replace("[TestName]", testName)
         .replace("[DeviceName]", deviceName)
 
-private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTemplate: String, sb: StringBuilder) {
-    sb.append("## Summary\n")
+
+// List of tests, aggregated for all devices
+private fun buildTestSummary(results: List<DeviceTestResult>, externalLogUrlTemplate: String, sb: StringBuilder) {
+    sb.append("## By test\n")
     sb.append("\n")
 
-    sb.append("| Class | Test | Succeeded | Time | Status |\n")
-    sb.append("|---|---|---|---|---|\n")
+    sb.append("| Class | Test | Passed | Time |\n")
+    sb.append("|---|---|---|---|\n")
 
     val grouped = results
         .filter { it.status != MarkdownTestStatus.SKIPPED }
@@ -110,7 +145,7 @@ private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTem
         val simpleClassName = fullClassName.substringAfterLast('.')
         val passed = deviceResults.count { it.status == MarkdownTestStatus.PASSED }
         val total = deviceResults.size
-        val statusSymbol = when {
+        val icon = when {
             passed == total -> "✅"
             passed == 0 -> "❌"
             else -> "⚠️"
@@ -121,17 +156,18 @@ private fun buildSummaryTable(results: List<DeviceTestResult>, externalLogUrlTem
         } else testName
 
         val avgDuration = deviceResults.map { it.durationSeconds }.average()
-        sb.append("| $simpleClassName | $testCell | $passed/$total | ${formatDuration(avgDuration)} | $statusSymbol |\n")
+        sb.append("| $simpleClassName | $testCell | $icon $passed/$total | ${formatDuration(avgDuration)} |\n")
     }
 
     sb.append("\n")
 }
 
+// List of failed tests with stacktrace and link to external log (if provided)
 private fun buildFailuresSection(results: List<DeviceTestResult>, sb: StringBuilder, externalLogUrlTemplate: String = "") {
     val failures = results.filter { it.status == MarkdownTestStatus.FAILED }
     if (failures.isEmpty()) return
 
-    sb.append("## Failed Tests\n")
+    sb.append("## Failed tests details\n")
     sb.append("\n")
     sb.append("<table>\n")
     sb.append("<tr><th>Device</th><th>Class</th><th>Test</th></tr>\n")
