@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 data class Args(
         @Parameter(
                 names = arrayOf("--apk"),
-                required = true,
+                required = false,
                 description = "Path to application apk that needs to be tested.",
                 order = 0
         )
@@ -16,7 +16,7 @@ data class Args(
 
         @Parameter(
                 names = arrayOf("--test-apk"),
-                required = true,
+                required = false,
                 description = "Path to apk with tests.",
                 order = 1
         )
@@ -150,7 +150,15 @@ data class Args(
                 description = "Device folder name containing screenshots from tests. Default: /storage/emulated/0/app_spoon-screenshots",
                 order = 14
         )
-        var spoonFolder: String = "/storage/emulated/0/app_spoon-screenshots/"
+        var spoonFolder: String = "/storage/emulated/0/app_spoon-screenshots/",
+
+        @Parameter(
+                names = arrayOf("--markdown-report-from-xml"),
+                required = false,
+                description = "Path to directory containing JUnit XML reports. When set, generates a Markdown report from existing XML files without running tests.",
+                order = 15
+        )
+        var markdownReportFromXml: String = ""
 ) {
         /** Converts the list of key-value pairs stored as String, to a Map */
         val deviceAliasMap: Map<String, String> by lazy {
@@ -171,6 +179,10 @@ private val PARAMETER_HELP_NAMES = setOf("--help", "-help", "help", "-h")
 private fun validateArguments(args: Args) {
     if (!args.devicePattern.isEmpty() && !args.devices.isEmpty()) {
         throw IllegalArgumentException("Specifying both --devices and --device-pattern is prohibited.")
+    }
+    if (args.markdownReportFromXml.isEmpty()) {
+        if (args.appApkPath.isEmpty()) throw IllegalArgumentException("--apk is required unless --markdown-report-from-xml is set.")
+        if (args.testApkPath.isEmpty()) throw IllegalArgumentException("--test-apk is required unless --markdown-report-from-xml is set.")
     }
 }
 
